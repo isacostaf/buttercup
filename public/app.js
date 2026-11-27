@@ -678,7 +678,7 @@ function renderForm(id) {
         <div class="import" id="import">
           <div class="import__head">
             <span class="import__icon">${ICON.link}</span>
-            <div><p class="import__title">Importar de um link</p><p class="import__sub">ReciMe ou site de receitas: preenche tudo sozinho</p></div>
+            <div><p class="import__title">Importar de um link</p><p class="import__sub">ReciMe, TikTok ou site de receitas: preenche tudo sozinho</p></div>
           </div>
           <div class="import__row">
             <input class="input" id="import-url" placeholder="Cole o link aqui" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go">

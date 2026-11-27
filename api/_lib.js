@@ -179,9 +179,162 @@ function promoteFirst(list) {
 // linhas curtas terminando em ":" ("Recheio:") viram seção
 const colonSections = (list) => list.map((t) => (/^[^\d]{2,40}:$/.test(t) ? `# ${t.slice(0, -1).trim()}` : t));
 
+/* ---------------- TikTok: receita escrita na legenda ---------------- */
+const isTikTok = (url) => /(^|\.)tiktok\.com$/i.test(new URL(url).hostname);
+
+// acha o objeto do vídeo (itemStruct) nos JSONs embutidos da página
+function tiktokItem(html) {
+  for (const m of html.matchAll(/<script[^>]*type="application\/json"[^>]*>([\s\S]*?)<\/script>/gi)) {
+    if (!m[1].includes('"itemStruct"')) continue;
+    try {
+      const found = (function walk(o) {
+        if (!o || typeof o !== 'object') return null;
+        if (o.itemStruct?.desc != null) return o.itemStruct;
+        for (const v of Object.values(o)) { const r = walk(v); if (r) return r; }
+        return null;
+      })(JSON.parse(m[1]));
+      if (found) return found;
+    } catch { /* ignora */ }
+  }
+  return null;
+}
+
+const NUM_WORDS = 'meia|meio|uma|um|duas|dois|três|tres|quatro|cinco|seis|pitada|half|one|two|three';
+const BULLET = '[-–•*·▪✔✅🔸🔹]';
+const QTY_START = new RegExp(`^(${BULLET}+\\s*)?(\\d|[½⅓⅔¼¾⅛]|(${NUM_WORDS})\\b)`, 'iu');
+const NO_SPLIT_AFTER = /^(e|a|à|de|do|da|por|com|até|em|x|ou|and|or|of|to|at|for|=|\+)$/i;
+const SECTION_WORDS = /^(massa|recheio|cobertura|calda|creme|base|bolo|ganache|montagem|brigadeiro|molho|farofa|crosta|topping|frosting|filling|dough|sauce)$/i;
+const CTA = /gostou\?|quer\s+aprender|marque\s|siga\s|segue\s|me\s+segue|comenta|compartilh|salva\s+(esse|essa|o\s+v)|link\s+na\s+(minha\s+)?bio|link\s+in\s+bio|clique|aulas?\s+gratuitas|acesso\s+(exclusivo|vital)|follow\s+for|save\s+this/i;
+
+// "5 ovos grandes 130g de açúcar 30g de amido" → ["5 ovos grandes", "130g de açúcar", "30g de amido"]
+function splitIngredients(line) {
+  const words = line.split(/\s+/);
+  const out = [];
+  let cur = [], depth = 0;
+  words.forEach((w, i) => {
+    const prev = words[i - 1] || '';
+    if (cur.length && depth === 0 && QTY_START.test(w) && !NO_SPLIT_AFTER.test(prev) && !/[\/x×(]$/.test(prev)) {
+      out.push(cur.join(' ')); cur = [];
+    }
+    cur.push(w);
+    depth = Math.max(0, depth + (w.match(/\(/g) || []).length - (w.match(/\)/g) || []).length);
+  });
+  if (cur.length) out.push(cur.join(' '));
+  return out.map((t) => t.replace(new RegExp(`^${BULLET}+\\s*|\\s*${BULLET}+$`, 'gu'), '').trim()).filter(Boolean);
+}
+
+// títulos "Recheio:", "Modo de Preparo:", "Ingredientes usados na receita:".
+// Palavras conhecidas valem em qualquer caixa; fora isso, só UMA palavra com maiúscula antes do ":".
+const ci = (w) => w.replace(/[a-zà-ÿ]/g, (c) => `[${c}${c.toUpperCase()}]`);
+const KNOWN_HEADS = ['modo de preparo', 'modo de fazer', 'como fazer', 'passo a passo', 'preparo', 'recheio', 'massa', 'cobertura', 'calda', 'creme', 'ganache', 'montagem', 'obs', 'dica', 'dicas']
+  .map((w) => ci(w).replace(/ /g, '\\s+')).join('|');
+const HEADING = new RegExp(`(^|[\\s*])((?:${ci('ingredientes')}|${ci('ingrediente')}|${ci('ingredients')})[^:\\n]{0,40}|${KNOWN_HEADS}|[A-ZÀ-Ý][a-zà-ÿ()]+|[A-ZÀ-Ý]{2,})\\s*:(?=\\s|$)`, 'gu');
+const ING_HEAD = /^(ingredientes?|ingredients?)\b/i;
+const STEP_HEAD = /^(modo\s+de\s+(preparo|fazer)|preparo|como\s+fazer|instru[cç][oõ]es|instructions?|method|directions|passo\s+a\s+passo)\b/i;
+const NOTE_HEAD = /^(obs|observa[cç][aã]o|observa[cç][oõ]es|dicas?|nota|tips?|rende|rendimento)\b/i;
+const sentenceCase = (t) => (t === t.toUpperCase() && /[A-ZÀ-Ý]/.test(t) ? t.charAt(0) + t.slice(1).toLowerCase() : t);
+const capFirst = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+const looksLikeStep = (t) => !QTY_START.test(t) && (/[.!]$/.test(t) || t.split(/\s+/).length > 7);
+const isAside = (t) => /^(x[íi]cara|copo|colher)[^=]{0,20}=|^forma\b|^forno\b|^\(.*\)$/i.test(t);
+
+export function parseCaption(desc) {
+  let text = String(desc || '')
+    .replace(/[⁣​﻿]+/g, '  ')                 // separadores invisíveis = quebra de linha
+    .replace(/#[^\s#]+/g, ' ')                               // hashtags
+    .replace(/(\s\.){2,}/g, ' ')                             // ". . . . ."
+    .replace(/\r/g, '');
+  // quebras de linha (no TikTok viram 2+ espaços)
+  text = text.replace(/[ \t]{2,}/g, '\n');
+  // passos numerados "1 – … 2 – …"
+  text = text.replace(/\s(?=\d{1,2}\s?[–\-.)]\s+[A-ZÀ-Ý])/g, '\n');
+  // marcadores "- item - item" em linhas próprias
+  if ((text.match(/(?<!\d)\s[-•]\s/g) || []).length >= 2) text = text.replace(/(?<!\d)\s[-•]\s/g, '\n');
+  // "Modo de preparo no vídeo" no meio do texto
+  text = text.replace(/\s*((modo\s+de\s+)?preparo\s+(completo\s+)?(no|in the)\s+v[ií]deo[^\n.!]*[.!]?)\s*/gi, '\n$1\n');
+  // títulos "Recheio:" em linhas próprias
+  text = text.replace(HEADING, (m, sp, h) => `${sp === '*' ? '' : sp}\n${h.trim()}:\n`);
+  const lines = text.split('\n').map((l) => l.trim()).filter((l) => /[\p{L}\d]/u.test(l));
+
+  const intro = [], ingredients = [], steps = [], notes = [];
+  let mode = 'intro';
+  for (let line of lines) {
+    // tira frases de propaganda ("Gostou? Marque quem…", "link na bio")
+    if (CTA.test(line)) line = line.split(/(?<=[.!?])\s+/).filter((x) => !CTA.test(x)).join(' ').trim();
+    if (!/[\p{L}\d]/u.test(line)) continue;
+    const head = line.match(/^(.{1,50}):$/)?.[1].trim();
+    if (head) {
+      if (ING_HEAD.test(head)) {
+        mode = 'ing';
+        const rest = head.replace(ING_HEAD, '').replace(/^(usad[oa]s|d[aoe]s?|para|pro|pra)\b.*/i, '').trim();
+        if (rest && rest.split(/\s+/).length <= 3) ingredients.push(`# ${capFirst(sentenceCase(rest))}`);
+        continue;
+      }
+      if (STEP_HEAD.test(head)) { mode = 'steps'; continue; }
+      if (NOTE_HEAD.test(head)) { mode = 'notes'; continue; }
+      if (mode === 'steps') steps.push(`# ${capFirst(sentenceCase(head))}`);
+      else { mode = 'ing'; ingredients.push(`# ${capFirst(sentenceCase(head))}`); }
+      continue;
+    }
+    if (/no v[ií]deo|in the video/i.test(line)) { notes.push(line); if (mode !== 'intro') mode = 'notes'; continue; }
+    if (mode === 'intro') {
+      if (intro.length && QTY_START.test(line) && splitIngredients(line).length > 1) mode = 'ing';
+      else { intro.push(line); continue; }
+    }
+    if (mode === 'ing') {
+      // "massa 4 Ovos …" logo depois de "Ingredientes:" → seção "Massa"
+      const sec = line.match(/^([A-Za-zÀ-ÿ]+)\s+(?=\S)/);
+      if (sec && SECTION_WORDS.test(sec[1]) && QTY_START.test(line.slice(sec[0].length))) {
+        ingredients.push(`# ${capFirst(sec[1].toLowerCase())}`);
+        line = line.slice(sec[0].length);
+      }
+      if (isAside(line)) { notes.push(line); continue; }
+      if (looksLikeStep(line)) mode = 'steps';
+    }
+    if (mode === 'ing') ingredients.push(...splitIngredients(line));
+    else if (mode === 'steps') {
+      steps.push(...line.replace(/^\d{1,2}\s?[–\-.)]\s+/, '').split(/(?<=[.!])\s+(?=[A-ZÀ-Ý])/).map((x) => x.trim()).filter(Boolean));
+    } else notes.push(line);
+  }
+
+  // nome: primeira frase da introdução, sem emojis
+  const first = (intro[0] || '').split(/(?<=[.!?])\s|[|•]/)[0];
+  const name = sentenceCase(first.replace(/\p{Extended_Pictographic}|️|[\u{1F3FB}-\u{1F3FF}]/gu, '').replace(/\s+/g, ' ').replace(/[!:.\s]+$/, '').trim()).slice(0, 80);
+  notes.unshift(...intro.slice(1));
+  return {
+    name,
+    ingredients: ingredients.filter((t, i, a) => !(t.startsWith('# ') && (a[i + 1] ?? '# ').startsWith('# '))),
+    steps: steps.filter((t, i, a) => !(t.startsWith('# ') && (a[i + 1] ?? '# ').startsWith('# '))),
+    notes: notes.join('\n'),
+  };
+}
+
+async function fetchTikTok(url, html) {
+  const item = tiktokItem(html);
+  const desc = item?.desc || clean(html.match(/<meta[^>]+(?:property|name)=["'](?:og:)?description["'][^>]+content=["']([^"']*)/i)?.[1]);
+  const parsed = parseCaption(desc);
+  if (!parsed.ingredients.some((t) => !t.startsWith('# '))) {
+    const err = new Error('Não achei a receita na legenda desse TikTok');
+    err.code = 'NO_RECIPE';
+    throw err;
+  }
+  const user = item?.author?.uniqueId || url.match(/@([\w.]+)/)?.[1];
+  const id = item?.id || url.match(/video\/(\d+)/)?.[1];
+  const link = user && id ? `https://www.tiktok.com/@${user}/video/${id}` : url;
+  return {
+    name: parsed.name || 'Receita do TikTok',
+    labels: [],
+    ingredients: parsed.ingredients,
+    steps: parsed.steps,
+    notes: parsed.notes,
+    source: `TikTok${user ? ` · @${user}` : ''} — ${link}`,
+    imageUrl: item?.video?.originCover || item?.video?.cover || null,
+  };
+}
+
 export async function fetchRecipe(url, handle) {
   const { buf } = await fetchLimited(url, MAX_HTML, 'text/html,application/xhtml+xml');
   const html = buf.toString('utf8');
+  if (isTikTok(url) || html.includes('"itemStruct"')) return fetchTikTok(url, html);
 
   let recipe = null;
   for (const m of html.matchAll(/<script[^>]*type=["']?application\/ld\+json["']?[^>]*>([\s\S]*?)<\/script>/gi)) {
