@@ -342,20 +342,23 @@ function renderDetail(id) {
       ${r.labels.length ? `<div class="tags tags--lg">${r.labels.map(tagHTML).join('')}</div>` : ''}
 
       <div class="stats">
-        <div class="stat">${ICON.basket}<span class="stat__value">${plural(countItems(r.ingredients), 'ingrediente', 'ingredientes')}</span></div>
-        <div class="stat">${ICON.steps}<span class="stat__value">${plural(countItems(r.steps), 'passo', 'passos')}</span></div>
-        <button class="stat stat--btn" id="made-stat">${ICON.book}<span class="stat__value"><strong>${madeCount(r)}×</strong>feita</span></button>
+        <div class="stat">${ICON.basket}<span class="stat__label">Ingredientes</span><span class="stat__value">${plural(countItems(r.ingredients), 'item', 'itens')}</span></div>
+        <div class="stat">${ICON.steps}<span class="stat__label">Preparo</span><span class="stat__value">${plural(countItems(r.steps), 'passo', 'passos')}</span></div>
+        <button class="stat stat--btn" id="made-stat">${ICON.book}<span class="stat__label">Já fiz</span><span class="stat__value">${plural(madeCount(r), 'vez', 'vezes')}</span></button>
       </div>
 
       ${r.ingredients.length ? `
-        <h2 class="section-title">Ingredientes (${countItems(r.ingredients)}) <small id="ing-count"></small></h2>
-        <div class="portions">
+        <div class="portions portions--top">
           <span class="portions__label">Quanto da receita?</span>
           <div class="portions__opts" role="group" aria-label="Quanto da receita">
             ${PORTIONS.map((p) => `<button class="portion ${Math.abs(p.v - k) < 1e-9 ? 'is-active' : ''}" data-portion="${p.v}" aria-pressed="${Math.abs(p.v - k) < 1e-9}">${p.label}</button>`).join('')}
           </div>
           ${k !== 1 ? `<p class="portions__note">Quantidades ajustadas para <strong>${k < 1 ? PORTIONS.find((p) => Math.abs(p.v - k) < 1e-9).label + ' da receita' : k + '× a receita'}</strong>. Confira tempos e forma de assar.</p>` : ''}
         </div>
+      ` : ''}
+
+      ${r.ingredients.length ? `
+        <h2 class="section-title">Ingredientes (${countItems(r.ingredients)}) <small id="ing-count"></small></h2>
         <ul class="items">
           ${r.ingredients.map((t, i) => isSection(t) ? `<li class="items__section">${esc(sectionName(t))}</li>` : `
             <li class="${r.ingredients.slice(0, i).some(isSection) ? 'in-section' : ''}"><button class="item tone-${(tone + i) % 6} ${checks.ing.has(i) ? 'is-done' : ''}" data-ing="${i}" aria-pressed="${checks.ing.has(i)}">
