@@ -39,15 +39,24 @@ const ICON = {
 };
 
 const DOT = '<i class="dot"></i>';
-const OWNER_NAME = 'Marta';
+const OWNER_NAME = 'Marta'; // nome da saudação na tela inicial
 
-// Fundo do topo da tela inicial: foto escolhida pela pessoa (guardada só neste aparelho).
-// A foto é reduzida para ~720px antes de salvar (umas dezenas de KB) e o desfoque é feito no CSS.
-const BG_KEY = 'buttercup-header-bg';
-const getHeaderBg = () => { try { return localStorage.getItem(BG_KEY); } catch { return null; } };
-const setHeaderBg = (v) => {
-  try { v ? localStorage.setItem(BG_KEY, v) : localStorage.removeItem(BG_KEY); return true; } catch { return false; }
-}; // nome da saudação na tela inicial
+// Cor do topo da tela inicial (escolhida no rodapé, guardada só neste aparelho).
+// Cada cor: 3 tons do degradê de cima para baixo + 2 tons de brilho.
+const HEADER_COLORS = {
+  azul:     { name: 'Azul',     c: ['#9DAECB', '#AEBDD7', '#C3CDE0', '#B9C6DE', '#C9D3E6'] },
+  rosa:     { name: 'Rosa',     c: ['#D29CAB', '#DDB0BC', '#E9C9D1', '#E6BAC6', '#EFD1D8'] },
+  pessego:  { name: 'Pêssego',  c: ['#D99C78', '#E3B193', '#EDC8B2', '#E9BC9B', '#F1D3BF'] },
+  salvia:   { name: 'Sálvia',   c: ['#8FAA93', '#A5BEA8', '#BFD1C1', '#B1C7B4', '#C9D9CA'] },
+  lavanda:  { name: 'Lavanda',  c: ['#A698C9', '#B7ACD5', '#CDC5E2', '#C1B7DC', '#D5CEE7'] },
+  caramelo: { name: 'Caramelo', c: ['#B48D69', '#C3A182', '#D5BBA2', '#CBA889', '#DCC5AF'] },
+  grafite:  { name: 'Grafite',  c: ['#7B8291', '#9399A6', '#B2B7C1', '#A1A7B3', '#BFC3CB'] },
+};
+const COLOR_KEY = 'buttercup-header-color';
+const getHeaderColor = () => { try { return HEADER_COLORS[localStorage.getItem(COLOR_KEY)] ? localStorage.getItem(COLOR_KEY) : 'azul'; } catch { return 'azul'; } };
+const setHeaderColor = (k) => { try { localStorage.setItem(COLOR_KEY, k); } catch { /* ok */ } };
+const headerVars = (k) => HEADER_COLORS[k].c.map((v, i) => `--h${i + 1}:${v}`).join(';');
+try { localStorage.removeItem('buttercup-header-bg'); } catch { /* foto antiga de fundo: não é mais usada */ }
 
 const FOOD = ['🍲', '🥗', '🍰', '🍝', '🥘', '🍳', '🥞', '🍪'];
 
@@ -229,8 +238,7 @@ function renderHome() {
     `<button class="chip ${(state.filter || '') === value ? 'is-active' : ''}" data-filter="${esc(value)}">${extra}${esc(text)}</button>`;
 
   $app.innerHTML = `
-    <header class="home-hero ${getHeaderBg() ? 'home-hero--photo' : ''}">
-      ${getHeaderBg() ? `<div class="home-hero__bg" style="background-image:url('${getHeaderBg()}')"></div>` : ''}
+    <header class="home-hero" id="home-hero" style="${headerVars(getHeaderColor())}">
       <div class="wrap">
         <div class="home-hero__top">
           <span class="home-hero__mark" aria-hidden="true">${ICON.asterisk}</span>
@@ -255,11 +263,11 @@ function renderHome() {
     <div class="wrap" id="list-area"></div>
 
     <footer class="home-footer">
-      <label class="bg-btn">
-        <input type="file" accept="image/*" class="sr-only" id="bg-input">
-        ${ICON.camera}Trocar fundo
-      </label>
-      ${getHeaderBg() ? `<button class="bg-reset" id="bg-reset">Voltar ao azul</button>` : ''}
+      <button class="bg-btn" id="color-toggle" aria-expanded="false"><span class="bg-btn__dot" style="${headerVars(getHeaderColor())}"></span>Trocar cor</button>
+      <div class="swatches" id="swatches" hidden>
+        ${Object.entries(HEADER_COLORS).map(([k, v]) => `
+          <button class="swatch ${k === getHeaderColor() ? 'is-active' : ''}" data-color="${k}" style="${headerVars(k)}" aria-label="${v.name}" title="${v.name}"></button>`).join('')}
+      </div>
       ${cloud && state.user ? `<p class="account">Conectada como ${esc(state.user)} · <button class="account__out" id="logout">Sair</button></p>` : ''}
     </footer>
 
@@ -267,22 +275,19 @@ function renderHome() {
   `;
 
   drawList();
-  $app.querySelector('#bg-input').onchange = async (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
-    try {
-      const img = await loadImage(file);
-      if (!setHeaderBg(resize(img, 720, 0.72))) return toast('Não consegui salvar o fundo 😕');
-      renderHome();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      toast('Fundo trocado ✓');
-    } catch {
-      toast('Não consegui abrir essa foto 😕');
-    }
+  const colorToggle = $app.querySelector('#color-toggle');
+  const swatches = $app.querySelector('#swatches');
+  colorToggle.onclick = () => {
+    swatches.hidden = !swatches.hidden;
+    colorToggle.setAttribute('aria-expanded', !swatches.hidden);
   };
-  const bgReset = $app.querySelector('#bg-reset');
-  if (bgReset) bgReset.onclick = () => { setHeaderBg(null); renderHome(); toast('Fundo azul de volta'); };
+  swatches.querySelectorAll('[data-color]').forEach((b) => b.onclick = () => {
+    const k = b.dataset.color;
+    setHeaderColor(k);
+    $app.querySelector('#home-hero').setAttribute('style', headerVars(k));
+    colorToggle.querySelector('.bg-btn__dot').setAttribute('style', headerVars(k));
+    swatches.querySelectorAll('.swatch').forEach((x) => x.classList.toggle('is-active', x === b));
+  });
 
   const logout = $app.querySelector('#logout');
   if (logout) logout.onclick = async () => {
