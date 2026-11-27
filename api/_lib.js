@@ -103,7 +103,7 @@ function steps(instr) {
     if (!x) return;
     if (typeof x === 'string') { x.split(/\r?\n+/).map(clean).filter(Boolean).forEach((s) => out.push(s)); return; }
     if (Array.isArray(x)) { x.forEach(walk); return; }
-    if (x.itemListElement) { if (x.name) out.push(`— ${clean(x.name)} —`); walk(x.itemListElement); return; }
+    if (x.itemListElement) { if (x.name) out.push(`# ${clean(x.name)}`); walk(x.itemListElement); return; }
     if (x.text) out.push(clean(x.text));
     else if (x.name) out.push(clean(x.name));
   };
@@ -129,6 +129,55 @@ function yieldText(y) {
   const v = Array.isArray(y) ? y[0] : y;
   return /^\d+$/.test(String(v).trim()) ? `${v} porções` : clean(v);
 }
+
+// ReciMe guarda as divisões (Massa, Recheio, Cobertura…) num JSON embutido da página,
+// que não aparece no schema.org. Lê de lá quando existir.
+function nextFlight(html) {
+  let f = '';
+  for (const m of html.matchAll(/self\.__next_f\.push\(\[1,("(?:[^"\\]|\\.)*")\]\)/g)) {
+    try { f += JSON.parse(m[1]); } catch { /* ignora */ }
+  }
+  return f;
+}
+
+function jsonArrayAfter(text, key) {
+  const k = text.indexOf(`"${key}":[{`);
+  if (k < 0) return null;
+  const start = text.indexOf('[', k);
+  let depth = 0, inStr = false, esc = false;
+  for (let p = start; p < text.length; p++) {
+    const c = text[p];
+    if (inStr) { if (esc) esc = false; else if (c === '\\') esc = true; else if (c === '"') inStr = false; continue; }
+    if (c === '"') inStr = true;
+    else if (c === '[' || c === '{') depth++;
+    else if (c === ']' || c === '}') {
+      depth--;
+      if (depth === 0) { try { return JSON.parse(text.slice(start, p + 1)); } catch { return null; } }
+    }
+  }
+  return null;
+}
+
+function withSections(items, textKey) {
+  if (!Array.isArray(items) || !items.length) return null;
+  const out = [...items]
+    .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+    .map((x) => (x.heading ? `# ${clean(x.heading)}` : clean(x[textKey] ?? x.text ?? '')))
+    .filter((t) => t && t !== '#');
+  return out.length ? out : null;
+}
+
+// "Massa" escrito como 1º ingrediente (sem número) numa receita que tem seções = também é seção
+function promoteFirst(list) {
+  if (list.length > 1 && list.some((t) => t.startsWith('# ')) && !list[0].startsWith('# ')
+      && !/\d/.test(list[0]) && list[0].split(/\s+/).length <= 3) {
+    return [`# ${list[0].replace(/:$/, '')}`, ...list.slice(1)];
+  }
+  return list;
+}
+
+// linhas curtas terminando em ":" ("Recheio:") viram seção
+const colonSections = (list) => list.map((t) => (/^[^\d]{2,40}:$/.test(t) ? `# ${t.slice(0, -1).trim()}` : t));
 
 export async function fetchRecipe(url, handle) {
   const { buf } = await fetchLimited(url, MAX_HTML, 'text/html,application/xhtml+xml');
@@ -160,11 +209,21 @@ export async function fetchRecipe(url, handle) {
   let name = clean(recipe.name) || og('title') || 'Receita importada';
   if (name === name.toUpperCase() && /[A-ZÀ-Ý]/.test(name)) name = name.charAt(0) + name.slice(1).toLowerCase(); // "CINNAMON ROLL" → "Cinnamon roll"
 
+  let ingredients = [].concat(recipe.recipeIngredient || recipe.ingredients || []).map(clean).filter(Boolean);
+  let stepList = steps(recipe.recipeInstructions);
+  const flight = html.includes('self.__next_f') ? nextFlight(html) : '';
+  if (flight) {
+    ingredients = withSections(jsonArrayAfter(flight, 'ingredients'), 'rawText') || ingredients;
+    stepList = withSections(jsonArrayAfter(flight, 'instructions'), 'text') || stepList;
+  }
+  ingredients = promoteFirst(colonSections(ingredients));
+  stepList = colonSections(stepList);
+
   return {
     name,
     labels,
-    ingredients: [].concat(recipe.recipeIngredient || recipe.ingredients || []).map(clean).filter(Boolean),
-    steps: steps(recipe.recipeInstructions),
+    ingredients,
+    steps: stepList,
     notes,
     source: [site + (author && !/^[a-z]+-[a-z]+-\d+$/.test(author) ? ` · ${author}` : ''), url].join(' — '),
     imageUrl: imageUrl(recipe.image) || og('image') || null,

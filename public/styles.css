@@ -527,7 +527,7 @@ svg { width: 22px; height: 22px; flex: none; }
   content: ""; width: 10px; height: 10px; border-radius: 50%;
   background: #C9C9CF;
 }
-.rows--steps .row { counter-increment: step; }
+.rows--steps .row:not(.row--section) { counter-increment: step; }
 .rows--steps .row__mark::before {
   content: counter(step);
   width: 32px; height: 32px; border-radius: 10px;
@@ -539,6 +539,21 @@ svg { width: 22px; height: 22px; flex: none; }
 textarea.row__input { resize: none; overflow: hidden; line-height: 1.45; display: block; }
 .row__del { flex: none; width: 44px; height: 46px; display: grid; place-items: center; color: var(--ink-faint); border-radius: 12px; }
 .row__del svg { width: 20px; height: 20px; }
+
+.items__section {
+  font-size: 15px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink);
+  padding: 14px 4px 2px;
+}
+.items__section:first-child { padding-top: 0; }
+
+.row--section { background: transparent; padding-left: 0; }
+.row--section .row__mark::before { content: "§"; width: auto; height: auto; background: none; color: var(--ink-soft); font-weight: 700; font-size: 18px; border-radius: 0; }
+.rows--steps .row--section .row__mark::before { content: "§"; background: none; width: auto; height: auto; }
+.row--section .row__input { background: var(--surface); border-radius: 14px; font-weight: 700; padding: 11px 14px; }
+
+.add-btns { display: grid; grid-template-columns: 1.4fr 1fr; gap: 8px; }
+.add-row--section { color: var(--ink-soft); }
 
 .add-row {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;

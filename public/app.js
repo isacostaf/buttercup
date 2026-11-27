@@ -77,6 +77,12 @@ function linkify(text) {
 
 const plural = (n, one, many) => `<strong>${n}</strong>${n === 1 ? one : many}`;
 
+// Seções ("Massa", "Recheio"…) ficam na própria lista como itens que começam com "# "
+const SECTION = '# ';
+const isSection = (t) => typeof t === 'string' && (t.startsWith(SECTION) || /^— .+ —$/.test(t));
+const sectionName = (t) => t.startsWith(SECTION) ? t.slice(SECTION.length).trim() : t.replace(/^— | —$/g, '').trim();
+const countItems = (arr) => arr.filter((t) => !isSection(t)).length;
+
 const madeCount = (r) => (r.diary || []).length;
 const avgStars = (r) => {
   const d = r.diary || [];
@@ -309,6 +315,10 @@ function renderDetail(id) {
   const checks = state.checks.get(id);
   const k = state.scale.get(id) || 1;
   const tone = hue(r.name);
+  // número de cada passo, pulando as seções (1, 2, 3… seguido)
+  const stepNum = {};
+  let n = 0;
+  r.steps.forEach((t, i) => { if (!isSection(t)) stepNum[i] = ++n; });
 
   $app.innerHTML = `
     <div class="hero tone-${tone}">
@@ -326,13 +336,13 @@ function renderDetail(id) {
       ${r.labels.length ? `<div class="tags tags--lg">${r.labels.map(tagHTML).join('')}</div>` : ''}
 
       <div class="stats">
-        <div class="stat">${ICON.basket}<span class="stat__label">Ingredientes</span><span class="stat__value">${plural(r.ingredients.length, 'item', 'itens')}</span></div>
-        <div class="stat">${ICON.steps}<span class="stat__label">Preparo</span><span class="stat__value">${plural(r.steps.length, 'passo', 'passos')}</span></div>
+        <div class="stat">${ICON.basket}<span class="stat__label">Ingredientes</span><span class="stat__value">${plural(countItems(r.ingredients), 'item', 'itens')}</span></div>
+        <div class="stat">${ICON.steps}<span class="stat__label">Preparo</span><span class="stat__value">${plural(countItems(r.steps), 'passo', 'passos')}</span></div>
         <button class="stat stat--btn" id="made-stat">${ICON.book}<span class="stat__label">Já fiz</span><span class="stat__value">${plural(madeCount(r), 'vez', 'vezes')}</span></button>
       </div>
 
       ${r.ingredients.length ? `
-        <h2 class="section-title">Ingredientes (${r.ingredients.length}) <small id="ing-count"></small></h2>
+        <h2 class="section-title">Ingredientes (${countItems(r.ingredients)}) <small id="ing-count"></small></h2>
         <div class="portions">
           <span class="portions__label">Quanto da receita?</span>
           <div class="portions__opts" role="group" aria-label="Quanto da receita">
@@ -341,18 +351,18 @@ function renderDetail(id) {
           ${k !== 1 ? `<p class="portions__note">Quantidades ajustadas para <strong>${k < 1 ? PORTIONS.find((p) => Math.abs(p.v - k) < 1e-9).label + ' da receita' : k + '× a receita'}</strong>. Confira tempos e forma de assar.</p>` : ''}
         </div>
         <ul class="items">
-          ${r.ingredients.map((t, i) => `
+          ${r.ingredients.map((t, i) => isSection(t) ? `<li class="items__section">${esc(sectionName(t))}</li>` : `
             <li><button class="item tone-${(tone + i) % 6} ${checks.ing.has(i) ? 'is-done' : ''}" data-ing="${i}" aria-pressed="${checks.ing.has(i)}">
               <span class="item__mark">${checks.ing.has(i) ? ICON.check : DOT}</span><span class="item__text">${scaleText(t, k)}</span>
             </button></li>`).join('')}
         </ul>` : ''}
 
       ${r.steps.length ? `
-        <h2 class="section-title">Modo de preparo (${r.steps.length}) <small id="step-count"></small></h2>
+        <h2 class="section-title">Modo de preparo (${countItems(r.steps)}) <small id="step-count"></small></h2>
         <ol class="items">
-          ${r.steps.map((t, i) => `
+          ${r.steps.map((t, i) => isSection(t) ? `<li class="items__section">${esc(sectionName(t))}</li>` : `
             <li><button class="item item--step ${checks.step.has(i) ? 'is-done' : ''}" data-step="${i}" aria-pressed="${checks.step.has(i)}">
-              <span class="item__mark">${checks.step.has(i) ? ICON.check : i + 1}</span><span class="item__text">${esc(t)}</span>
+              <span class="item__mark">${checks.step.has(i) ? ICON.check : stepNum[i]}</span><span class="item__text">${esc(t)}</span>
             </button></li>`).join('')}
         </ol>` : ''}
 
@@ -428,7 +438,7 @@ function renderDetail(id) {
     });
   };
   bindToggle('ing', checks.ing, () => DOT);
-  bindToggle('step', checks.step, (i) => i + 1);
+  bindToggle('step', checks.step, (i) => stepNum[i]);
 }
 
 /* ---------- Diary: relatos de cada vez que a receita foi feita ---------- */
@@ -599,13 +609,19 @@ function renderForm(id) {
       <div class="field">
         <span class="field__label">Ingredientes</span>
         <div class="rows" id="ing-rows"></div>
-        <button type="button" class="add-row" id="add-ing">${ICON.plus}Adicionar ingrediente</button>
+        <div class="add-btns">
+          <button type="button" class="add-row" id="add-ing">${ICON.plus}Ingrediente</button>
+          <button type="button" class="add-row add-row--section" id="add-ing-sec">${ICON.plus}Seção</button>
+        </div>
       </div>
 
       <div class="field">
         <span class="field__label">Modo de preparo</span>
         <div class="rows rows--steps" id="step-rows"></div>
-        <button type="button" class="add-row" id="add-step">${ICON.plus}Adicionar passo</button>
+        <div class="add-btns">
+          <button type="button" class="add-row" id="add-step">${ICON.plus}Passo</button>
+          <button type="button" class="add-row add-row--section" id="add-step-sec">${ICON.plus}Seção</button>
+        </div>
       </div>
 
       <div class="field">
@@ -708,6 +724,8 @@ function renderForm(id) {
   (existing?.steps.length ? existing.steps : ['']).forEach((v) => addRow(stepRows, 'step', v, null, markDirty));
   $('#add-ing').onclick = () => addRow(ingRows, 'ing', '', null, markDirty, true);
   $('#add-step').onclick = () => addRow(stepRows, 'step', '', null, markDirty, true);
+  $('#add-ing-sec').onclick = () => addRow(ingRows, 'ing', SECTION, null, markDirty, true);
+  $('#add-step-sec').onclick = () => addRow(stepRows, 'step', SECTION, null, markDirty, true);
 
   /* --- importar de link --- */
   const importBox = $('#import');
@@ -784,7 +802,10 @@ function renderForm(id) {
       nameField.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
-    const readRows = (box) => [...box.querySelectorAll('.row__input')].map((el) => el.value.trim()).filter(Boolean);
+    const readRows = (box) => [...box.querySelectorAll('.row')].map((row) => {
+      const v = row.querySelector('.row__input').value.trim();
+      return v && row.classList.contains('row--section') ? SECTION + v : v;
+    }).filter(Boolean);
     const now = Date.now();
     const recipe = {
       id: existing?.id || uid(),
@@ -832,12 +853,16 @@ function renderForm(id) {
 /* Linha editável de lista. Enter cria a próxima; apagar numa linha vazia remove;
    colar várias linhas de uma vez divide em vários itens. */
 function addRow(box, kind, value = '', after = null, onChange = () => {}, focus = false) {
-  const isStep = kind === 'step';
+  const section = isSection(value);
+  if (section) value = sectionName(value);
+  const isStep = kind === 'step' && !section;
   const row = document.createElement('div');
-  row.className = 'row';
+  row.className = section ? 'row row--section' : 'row';
   row.innerHTML = `
     <span class="row__mark" aria-hidden="true"></span>
-    ${isStep
+    ${section
+      ? `<input class="input row__input" placeholder="Nome da seção (ex.: Recheio)" enterkeyhint="next" autocapitalize="sentences">`
+      : isStep
       ? `<textarea class="input row__input" rows="1" placeholder="Descreva o passo" enterkeyhint="next" autocapitalize="sentences"></textarea>`
       : `<input class="input row__input" placeholder="Ex.: 2 xícaras de farinha" enterkeyhint="next" autocapitalize="sentences">`}
     <button type="button" class="row__del" aria-label="Remover">${ICON.x}</button>`;
@@ -861,10 +886,13 @@ function addRow(box, kind, value = '', after = null, onChange = () => {}, focus 
   });
   input.addEventListener('paste', (e) => {
     const text = e.clipboardData?.getData('text') || '';
-    const lines = text.split(/\r?\n/).map((l) => l.replace(/^\s*(?:[-•*·]|\d+[.)-])\s*/, '').trim()).filter(Boolean);
+    const lines = text.split(/\r?\n/)
+      .map((l) => l.replace(/^\s*(?:[-•*·]|\d+[.)-])\s*/, '').trim())
+      .filter(Boolean)
+      .map((l) => (/^[^\d]{2,40}:$/.test(l) ? SECTION + l.slice(0, -1).trim() : l)); // "Recheio:" vira seção
     if (lines.length < 2) return;
     e.preventDefault();
-    input.value = (input.value ? input.value + ' ' : '') + lines[0];
+    input.value = (input.value ? input.value + ' ' : '') + (isSection(lines[0]) ? sectionName(lines[0]) : lines[0]);
     grow();
     let last = row;
     for (const l of lines.slice(1)) last = addRow(box, kind, l, last, onChange);
