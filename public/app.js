@@ -336,9 +336,9 @@ function renderDetail(id) {
       ${r.labels.length ? `<div class="tags tags--lg">${r.labels.map(tagHTML).join('')}</div>` : ''}
 
       <div class="stats">
-        <div class="stat">${ICON.basket}<span class="stat__label">Ingredientes</span><span class="stat__value">${plural(countItems(r.ingredients), 'item', 'itens')}</span></div>
-        <div class="stat">${ICON.steps}<span class="stat__label">Preparo</span><span class="stat__value">${plural(countItems(r.steps), 'passo', 'passos')}</span></div>
-        <button class="stat stat--btn" id="made-stat">${ICON.book}<span class="stat__label">Já fiz</span><span class="stat__value">${plural(madeCount(r), 'vez', 'vezes')}</span></button>
+        <div class="stat">${ICON.basket}<span class="stat__value">${plural(countItems(r.ingredients), 'ingrediente', 'ingredientes')}</span></div>
+        <div class="stat">${ICON.steps}<span class="stat__value">${plural(countItems(r.steps), 'passo', 'passos')}</span></div>
+        <button class="stat stat--btn" id="made-stat">${ICON.book}<span class="stat__value"><strong>${madeCount(r)}×</strong>feita</span></button>
       </div>
 
       ${r.ingredients.length ? `

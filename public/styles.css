@@ -613,3 +613,83 @@ textarea.row__input { resize: none; overflow: hidden; line-height: 1.45; display
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
+
+/* ================================================================
+   RECEITA ABERTA — versão compacta (menos rolagem no iPhone)
+   ================================================================ */
+.hero { height: min(36vh, 300px); font-size: 72px; }
+.hero__bar { top: calc(var(--safe-top) + 12px); }
+.hero .circle-btn { width: 48px; height: 48px; }
+.hero .circle-btn svg { width: 22px; height: 22px; }
+
+.detail { padding-top: 18px; }
+.detail__name { font-size: 26px; }
+.detail .tags { margin-top: 8px; }
+
+/* números da receita: uma linha só */
+.stats { margin-top: 14px; gap: 8px; }
+.stat {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border-radius: 14px;
+  min-height: 52px;
+}
+.stat svg { width: 20px; height: 20px; margin: 0; flex: none; }
+.stat__label { display: none; }
+.stat__value { font-size: 13px; line-height: 1.1; }
+.stat__value strong { display: block; font-size: 18px; margin: 0; }
+
+.section-title { font-size: 19px; font-weight: 600; margin: 22px 0 8px; }
+
+/* porções: rótulo e botões na mesma linha */
+.portions { padding: 8px 10px; gap: 6px; margin-bottom: 8px; border-radius: 14px; }
+.portions__label { font-size: 14px; }
+.portions__opts { gap: 4px; }
+.portion { min-height: 40px; font-size: 17px; border-width: 1px; }
+.portions__note { font-size: 13px; }
+
+/* listas: um cartão só, com linhas finas entre os itens */
+.items {
+  gap: 0;
+  background: var(--surface);
+  border-radius: 18px;
+  overflow: hidden;
+}
+.items > li + li { border-top: 1px solid #EFEFF2; }
+.item {
+  background: none;
+  border-radius: 0;
+  min-height: 48px;
+  padding: 10px 14px 10px 12px;
+  gap: 12px;
+  font-size: 17px;
+}
+.item__mark { width: 28px; height: 28px; border-radius: 9px; font-size: 14px; }
+.item__mark svg { width: 16px; height: 16px; }
+.dot { width: 8px; height: 8px; }
+.item__text { line-height: 1.35; }
+.item--step { padding-top: 12px; padding-bottom: 12px; }
+.item--step .item__text { padding-top: 3px; line-height: 1.45; }
+.item--step .item__mark { border-radius: 50%; }
+
+.items__section {
+  font-size: 13px; letter-spacing: .07em;
+  padding: 12px 14px 6px;
+  background: #FAFAFB;
+}
+.items__section:first-child { padding-top: 10px; }
+.items > li.items__section + li { border-top: 0; }
+
+.notes { padding: 12px 14px; font-size: 17px; line-height: 1.45; border-radius: 18px; }
+.source { padding: 10px 14px 10px 10px; gap: 10px; border-radius: 18px; }
+.source__icon { width: 34px; height: 34px; border-radius: 10px; }
+.source__icon svg { width: 18px; height: 18px; }
+.source__text { font-size: 16px; padding-top: 5px; }
+
+.diary { margin-top: 22px; }
+.diary__tab { min-height: 62px; padding: 10px 14px 10px 10px; }
+.diary__icon { width: 40px; height: 40px; border-radius: 12px; }
+.diary__title { font-size: 18px; }
+
+/* botão de editar mais baixo */
+.bottom-bar { padding-top: 18px; padding-bottom: calc(12px + var(--safe-bottom)); }
+.btn-dark { min-height: 54px; font-size: 17px; }
