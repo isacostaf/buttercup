@@ -935,13 +935,4 @@ body[data-page="detail"] .portions--top .portion.is-active { background: var(--d
 }
 .home-hero__title { line-height: 1; }
 .home-hero__sub { margin-top: 2px; }
-/* labels das receitas (na lista e na receita aberta): transparentes, só borda */
-.card .tag, .card .tag[class*="tone-"],
-.detail .tag, .detail .tag[class*="tone-"] {
-  background: linear-gradient(180deg, rgba(255, 255, 255, .75), rgba(235, 237, 242, .55));
-  border: 1px solid rgba(255, 255, 255, .95);
-  box-shadow: 0 1px 3px rgba(40, 45, 70, .10), inset 0 1px 0 rgba(255, 255, 255, .9), inset 0 -1px 0 rgba(40, 45, 70, .05);
-  -webkit-backdrop-filter: blur(8px) saturate(1.4); backdrop-filter: blur(8px) saturate(1.4);
-  color: #4B4F5E;
-  padding: 3px 11px;
-}
+
