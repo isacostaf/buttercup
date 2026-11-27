@@ -33,11 +33,14 @@ const ICON = {
   star: svg('<path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.8l-5.2 2.8 1-5.8-4.3-4.1 5.9-.8z" fill="currentColor"/>', 'stroke-width="1.5"'),
   link: svg('<path d="M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1-1"/>'),
   external: svg('<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5"/>'),
+  asterisk: svg('<path d="M12 2.5v19M2.5 12h19M5.3 5.3l13.4 13.4M18.7 5.3L5.3 18.7"/>', 'stroke-width="2.6"'),
   book: svg('<path d="M5 4h11a3 3 0 013 3v13H8a3 3 0 01-3-3z"/><path d="M5 17a3 3 0 013-3h11M9 8h6"/>'),
   check: svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>'),
 };
 
 const DOT = '<i class="dot"></i>';
+const OWNER_NAME = 'Marta'; // nome da saudação na tela inicial
+
 const FOOD = ['🍲', '🥗', '🍰', '🍝', '🥘', '🍳', '🥞', '🍪'];
 
 /* ---------- utilitários ---------- */
@@ -218,24 +221,27 @@ function renderHome() {
     `<button class="chip ${(state.filter || '') === value ? 'is-active' : ''}" data-filter="${esc(value)}">${extra}${esc(text)}</button>`;
 
   $app.innerHTML = `
-    <header class="wrap page-head">
-      <span class="circle-btn circle-btn--logo" aria-hidden="true">🌼</span>
-      <h1 class="page-title">Minhas receitas</h1>
-    </header>
-
-    ${state.recipes.length ? `
+    <header class="home-hero">
       <div class="wrap">
-        <label class="search">
-          ${ICON.search}
-          <input type="search" id="search" placeholder="Buscar receita" value="${esc(state.query)}" enterkeyhint="search" autocomplete="off">
-        </label>
+        <div class="home-hero__top">
+          <span class="home-hero__mark" aria-hidden="true">${ICON.asterisk}</span>
+          ${state.recipes.length ? `<button class="glass-btn" id="search-toggle" aria-label="Buscar receita">${ICON.search}</button>` : ''}
+        </div>
+        <h1 class="home-hero__title">Hi, ${esc(OWNER_NAME)}</h1>
+        <p class="home-hero__sub">Welcome to your cookbook</p>
+        ${state.recipes.length ? `
+          <label class="search search--glass" id="search-box" ${state.query ? '' : 'hidden'}>
+            ${ICON.search}
+            <input type="search" id="search" placeholder="Buscar receita" value="${esc(state.query)}" enterkeyhint="search" autocomplete="off">
+          </label>` : ''}
       </div>
-
-      <nav class="filters" aria-label="Filtrar por label">
-        ${chip('', 'Todas')}
-        ${hasFav ? chip('__fav', 'Favoritas', ICON.heartFill) : ''}
-        ${labels.map((l) => chip(l, l)).join('')}
-      </nav>` : ''}
+      ${state.recipes.length ? `
+        <nav class="filters filters--glass" aria-label="Filtrar por label">
+          ${chip('', 'Todas')}
+          ${hasFav ? chip('__fav', 'Favoritas', ICON.heartFill) : ''}
+          ${labels.map((l) => chip(l, l)).join('')}
+        </nav>` : ''}
+    </header>
 
     <div class="wrap" id="list-area"></div>
 
@@ -253,6 +259,13 @@ function renderHome() {
   };
 
   $app.querySelector('#fab').onclick = () => go('/nova');
+  const searchToggle = $app.querySelector('#search-toggle');
+  if (searchToggle) searchToggle.onclick = () => {
+    const box = $app.querySelector('#search-box');
+    box.hidden = !box.hidden;
+    if (!box.hidden) box.querySelector('input').focus();
+    else if (state.query) { state.query = ''; box.querySelector('input').value = ''; drawList(); }
+  };
   $app.querySelectorAll('[data-filter]').forEach((btn) => {
     btn.onclick = () => {
       state.filter = btn.dataset.filter || null;

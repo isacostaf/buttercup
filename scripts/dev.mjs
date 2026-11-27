@@ -17,6 +17,11 @@ http.createServer(async (req, res) => {
       const mod = await import(join(ROOT, 'api', pathname.slice(5).replace(/\W/g, '') + '.js'));
       return await mod.default(req, res);
     }
+    // BUTTERCUP_LOCAL_ONLY=1: abre sem login, com as receitas só do navegador (para testar o visual)
+    if (pathname === '/config.js' && process.env.BUTTERCUP_LOCAL_ONLY === '1') {
+      res.setHeader('Content-Type', 'text/javascript; charset=utf-8');
+      return res.end("export const SUPABASE_URL = '';\nexport const SUPABASE_ANON_KEY = '';\n");
+    }
     const file = normalize(join(PUBLIC, pathname === '/' ? 'index.html' : pathname));
     if (!file.startsWith(PUBLIC)) { res.statusCode = 403; return res.end(); }
     const data = await readFile(file);
