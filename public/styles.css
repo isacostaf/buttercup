@@ -940,3 +940,6 @@ body[data-page="detail"] .portions--top .portion.is-active { background: var(--d
 /* foto da lista mais perto das bordas do card */
 .card { padding: 8px 18px 8px 8px; }
 .thumb { width: 92px; height: 92px; border-radius: 17px; }
+
+/* contador de vezes feita: texto discreto embaixo das labels */
+.card__made { font-size: 13px; font-style: italic; color: var(--ink-faint); line-height: 1.2; }

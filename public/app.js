@@ -316,8 +316,8 @@ function cardHTML(r) {
           ${r.labels.length
             ? `<div class="tags">${r.labels.map(tagHTML).join('')}</div>`
             : `<span class="card__nolabel">Sem labels</span>`}
+          ${madeCount(r) ? `<p class="card__made">feita ${madeCount(r)} ${madeCount(r) === 1 ? 'vez' : 'vezes'}</p>` : ''}
         </div>
-        ${madeCount(r) ? `<span class="made" aria-label="Feita ${madeCount(r)} ${madeCount(r) === 1 ? 'vez' : 'vezes'}"><b>${madeCount(r)}×</b><small>feita</small></span>` : ''}
         <span class="card__chev">${ICON.chevron}</span>
       </a>
     </li>`;
