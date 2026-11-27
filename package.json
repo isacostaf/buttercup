@@ -4,7 +4,8 @@
   "private": true,
   "description": "Caderno de receitas (PWA para iPhone)",
   "scripts": {
-    "dev": "npx --yes serve public -l 4173",
+    "dev": "node scripts/dev.mjs",
     "icons": "node scripts/make-icons.mjs"
-  }
+  },
+  "type": "module"
 }

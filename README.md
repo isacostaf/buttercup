@@ -16,17 +16,11 @@ public/
   sw.js          funciona offline
   manifest.json  nome, cores e ícones do app
   icon-*.png     ícones (gerados por scripts/make-icons.mjs)
+api/parse.js   lê uma receita de um link (usado pelo app)
+api/share.js   importa e salva direto (usado pelo Atalho do iPhone)
 supabase/schema.sql   tabela e regras de segurança
 vercel.json      publica a pasta public/
 ```
-
-## Rodar no computador
-
-```bash
-npm run dev
-```
-
-Abre em http://localhost:4173.
 
 ## Publicar na Vercel
 
@@ -52,6 +46,33 @@ Abre em http://localhost:4173.
 6. Faça commit e push. No iPhone, abra o app, entre com o e-mail e a senha — só na primeira vez.
 
 Na primeira entrada, as receitas que já estavam no iPhone são enviadas para a nuvem automaticamente.
+
+## Importar receitas (ReciMe e sites de receita)
+
+**Dentro do app:** toque em **+** → cole o link em *Importar de um link*. O app preenche nome, ingredientes,
+modo de preparo, rendimento, fonte e foto; você confere e salva.
+
+**Direto do ReciMe (botão Compartilhar → Buttercup):** usa um Atalho do iPhone.
+
+1. Na Vercel → projeto → **Settings → Environment Variables**, crie:
+   - `BUTTERCUP_IMPORT_TOKEN` = o código que está em `.env.local` (ou qualquer senha longa)
+   - `SUPABASE_SECRET_KEY` = Supabase → Project Settings → API Keys → **Secret key** (`sb_secret_…`)
+
+   Depois: **Deployments → ⋯ → Redeploy**.
+2. No iPhone, app **Atalhos** → **+**:
+   - Toque no nome no topo → **Buttercup**. Em ⓘ **Detalhes**: ative **Mostrar na Folha de Compartilhamento**.
+   - No topo, em "Receber **qualquer** entrada", deixe só **Texto** e **URLs**. "Se não houver entrada": **Parar e Responder**.
+   - Ação **Obter Conteúdo do URL**:
+     - URL: `https://SEU-APP.vercel.app/api/share`
+     - Mostrar mais → Método **POST** → Corpo da Solicitação **JSON**, dois campos de texto:
+       `text` = *Entrada do Atalho* · `token` = o mesmo código do passo 1
+   - Ação **Mostrar Notificação** → texto: *Conteúdo do URL*.
+3. No ReciMe: **Exportar/Compartilhar → Buttercup**. Aparece "🌼 … salva no Buttercup" e a receita
+   já está no app na próxima vez que abrir.
+
+## Rodar no computador
+
+`npm run dev` serve o app e as rotas `/api` em http://localhost:4173.
 
 ## Sobre os dados
 

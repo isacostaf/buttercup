@@ -564,6 +564,18 @@ function renderForm(id) {
     </header>
 
     <form class="wrap form" id="form" novalidate autocomplete="off">
+      ${!existing && cloud ? `
+        <div class="import" id="import">
+          <div class="import__head">
+            <span class="import__icon">${ICON.link}</span>
+            <div><p class="import__title">Importar de um link</p><p class="import__sub">ReciMe ou site de receitas: preenche tudo sozinho</p></div>
+          </div>
+          <div class="import__row">
+            <input class="input" id="import-url" placeholder="Cole o link aqui" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go">
+            <button type="button" class="btn-dark btn-dark--sm" id="import-btn">Importar</button>
+          </div>
+          <p class="field__error" id="import-error"></p>
+        </div>` : ''}
       <label class="photo-picker">
         <input type="file" accept="image/*" class="sr-only" id="photo-input">
         <div class="photo-picker__inner" id="photo-preview"></div>
@@ -696,6 +708,58 @@ function renderForm(id) {
   (existing?.steps.length ? existing.steps : ['']).forEach((v) => addRow(stepRows, 'step', v, null, markDirty));
   $('#add-ing').onclick = () => addRow(ingRows, 'ing', '', null, markDirty, true);
   $('#add-step').onclick = () => addRow(stepRows, 'step', '', null, markDirty, true);
+
+  /* --- importar de link --- */
+  const importBox = $('#import');
+  if (importBox) {
+    const urlInput = $('#import-url');
+    const btn = $('#import-btn');
+    const err = $('#import-error');
+    const fail = (msg) => { err.textContent = msg; err.style.display = 'block'; };
+    const run = async () => {
+      const text = urlInput.value.trim();
+      if (!/https?:\/\//i.test(text)) return fail('Cole um link que comece com https://');
+      err.style.display = 'none';
+      btn.disabled = true;
+      btn.textContent = 'Lendo…';
+      try {
+        const res = await fetch('/api/parse', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${await auth.token()}` },
+          body: JSON.stringify({ text }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Não consegui importar');
+
+        $('#name').value = data.name || '';
+        f.labels = [];
+        (data.labels || []).forEach(addLabel);
+        ingRows.innerHTML = '';
+        stepRows.innerHTML = '';
+        (data.ingredients?.length ? data.ingredients : ['']).forEach((v) => addRow(ingRows, 'ing', v, null, markDirty));
+        (data.steps?.length ? data.steps : ['']).forEach((v) => addRow(stepRows, 'step', v, null, markDirty));
+        $('#notes').value = data.notes || '';
+        $('#source').value = data.source || '';
+        if (data.photo) {
+          const blob = await (await fetch(data.photo)).blob();
+          Object.assign(f, await processPhoto(blob), { hasPhoto: true, changed: true });
+          drawPhoto();
+        }
+        dirty = true;
+        importBox.remove();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        toast('Receita importada — confira e salve ✓');
+      } catch (ex) {
+        fail(ex.message === 'Failed to fetch' ? 'Sem internet?' : ex.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Importar';
+      }
+    };
+    btn.onclick = run;
+    urlInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); run(); } });
+    urlInput.addEventListener('paste', () => setTimeout(run, 50)); // colou → já importa
+  }
 
   $('#name').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') { e.preventDefault(); labelInput.focus(); }
@@ -871,10 +935,26 @@ async function start() {
       state.recipes = await db.sync();
       const onForm = /^#\/(nova|editar)/.test(location.hash);
       if (!onForm) { const y = window.scrollY; route(); window.scrollTo(0, y); }
+      fixThumbs();
     } catch (err) {
       console.error(err);
       toast('Sem conexão — mostrando o que está salvo no aparelho');
     }
+  }
+}
+
+// Receitas salvas pelo Atalho do iPhone podem chegar sem miniatura: o app gera e salva.
+async function fixThumbs() {
+  for (const r of state.recipes.filter((x) => x.hasPhoto && !x.thumb)) {
+    try {
+      const photo = await db.photo(r.id);
+      if (!photo) continue;
+      const img = await loadImage(await (await fetch(photo)).blob());
+      r.photo = photo;
+      r.thumb = resize(img, 280, 0.8);
+      await db.put(r);
+      if (!location.hash || location.hash === '#/') drawList();
+    } catch (err) { console.error(err); }
   }
 }
 

@@ -112,6 +112,13 @@ export const auth = {
     const { error } = await sb.auth.signInWithPassword({ email, password });
     if (error) throw error;
   },
+  // token da sessão, para chamar as rotas /api protegidas
+  async token() {
+    if (!cloud) return '';
+    const sb = await client();
+    const { data } = await sb.auth.getSession();
+    return data.session?.access_token || '';
+  },
   async signOut() {
     const sb = await client();
     await sb.auth.signOut();

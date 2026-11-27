@@ -559,6 +559,16 @@ textarea.row__input { resize: none; overflow: hidden; line-height: 1.45; display
 }
 .danger-btn svg { width: 20px; height: 20px; }
 
+/* importar de link */
+.import { background: var(--surface); border-radius: var(--radius); padding: 16px; display: grid; gap: 12px; }
+.import__head { display: flex; align-items: center; gap: 12px; }
+.import__icon { width: 46px; height: 46px; flex: none; border-radius: 14px; display: grid; place-items: center; background: #E4EBFB; color: #4865AE; }
+.import__title { font-size: 18px; font-weight: 600; }
+.import__sub { font-size: 14px; color: var(--ink-soft); }
+.import__row { display: flex; gap: 8px; }
+.import__row .input { flex: 1; min-width: 0; background: var(--bg); }
+.import__row .btn-dark { width: auto; padding: 0 20px; margin: 0; flex: none; }
+
 /* login e conta */
 .login { min-height: 100dvh; display: grid; align-content: center; justify-items: center; gap: 10px; padding-top: var(--safe-top); text-align: center; }
 .login .page-title { margin-top: 10px; }
