@@ -36,6 +36,8 @@ const ICON = {
   asterisk: svg('<path d="M12 2.5v19M2.5 12h19M5.3 5.3l13.4 13.4M18.7 5.3L5.3 18.7"/>', 'stroke-width="2.6"'),
   book: svg('<path d="M5 4h11a3 3 0 013 3v13H8a3 3 0 01-3-3z"/><path d="M5 17a3 3 0 013-3h11M9 8h6"/>'),
   check: svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>'),
+  grid: svg('<rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/>'),
+  list: svg('<rect x="4" y="5" width="5" height="5" rx="1.2"/><rect x="4" y="14" width="5" height="5" rx="1.2"/><path d="M12.5 7.5H20M12.5 16.5H20"/>'),
 };
 
 const DOT = '<i class="dot"></i>';
@@ -56,6 +58,14 @@ const COLOR_KEY = 'buttercup-header-color';
 const getHeaderColor = () => { try { return HEADER_COLORS[localStorage.getItem(COLOR_KEY)] ? localStorage.getItem(COLOR_KEY) : 'azul'; } catch { return 'azul'; } };
 const setHeaderColor = (k) => { try { localStorage.setItem(COLOR_KEY, k); } catch { /* ok */ } };
 const headerVars = (k) => HEADER_COLORS[k].c.map((v, i) => `--h${i + 1}:${v}`).join(';');
+// Jeito de ver as receitas na tela inicial: 'list' ou 'grid' (galeria), guardado neste aparelho.
+const VIEW_KEY = 'buttercup-view';
+const getView = () => { try { return localStorage.getItem(VIEW_KEY) === 'grid' ? 'grid' : 'list'; } catch { return 'list'; } };
+const setView = (v) => { try { localStorage.setItem(VIEW_KEY, v); } catch { /* ok */ } };
+const viewBtn = () => getView() === 'grid'
+  ? `<button class="glass-btn" id="view-toggle" aria-label="Ver em lista">${ICON.list}</button>`
+  : `<button class="glass-btn" id="view-toggle" aria-label="Ver em galeria">${ICON.grid}</button>`;
+
 try { localStorage.removeItem('buttercup-header-bg'); } catch { /* foto antiga de fundo: não é mais usada */ }
 
 const FOOD = ['🍲', '🥗', '🍰', '🍝', '🥘', '🍳', '🥞', '🍪'];
@@ -242,7 +252,10 @@ function renderHome() {
       <div class="wrap">
         <div class="home-hero__top">
           <span class="home-hero__mark" aria-hidden="true">${ICON.asterisk}</span>
-          ${state.recipes.length ? `<button class="glass-btn" id="search-toggle" aria-label="Buscar receita">${ICON.search}</button>` : ''}
+          ${state.recipes.length ? `<div class="home-hero__actions">
+            ${viewBtn()}
+            <button class="glass-btn" id="search-toggle" aria-label="Buscar receita">${ICON.search}</button>
+          </div>` : ''}
         </div>
         <h1 class="home-hero__title">Hi, ${esc(OWNER_NAME)}</h1>
         <p class="home-hero__sub">Welcome to your cookbook</p>
@@ -297,6 +310,11 @@ function renderHome() {
   };
 
   $app.querySelector('#fab').onclick = () => go('/nova');
+  const viewToggle = $app.querySelector('#view-toggle');
+  if (viewToggle) viewToggle.onclick = () => {
+    setView(getView() === 'grid' ? 'list' : 'grid');
+    renderHome();
+  };
   const searchToggle = $app.querySelector('#search-toggle');
   if (searchToggle) searchToggle.onclick = () => {
     const box = $app.querySelector('#search-box');
@@ -337,8 +355,20 @@ function drawList() {
     .sort(byName);
 
   area.innerHTML = list.length
-    ? `<ul class="recipe-list">${list.map(cardHTML).join('')}</ul>`
+    ? (getView() === 'grid'
+      ? `<ul class="gallery">${list.map(galleryHTML).join('')}</ul>`
+      : `<ul class="recipe-list">${list.map(cardHTML).join('')}</ul>`)
     : `<div class="empty"><div class="empty__art" aria-hidden="true">🔍</div><h2 class="empty__title">Nada encontrado</h2><p class="empty__text">Tente outra palavra ou filtro.</p></div>`;
+}
+
+function galleryHTML(r) {
+  return `
+    <li>
+      <a class="gallery__item" href="#/r/${r.id}">
+        <div class="gallery__img thumb tone-${hue(r.name)}">${r.thumb ? `<img src="${r.thumb}" alt="" loading="lazy">` : foodEmoji(r.name)}</div>
+        <span class="gallery__name">${esc(r.name)}</span>
+      </a>
+    </li>`;
 }
 
 function cardHTML(r) {

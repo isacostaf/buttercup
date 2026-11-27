@@ -993,3 +993,18 @@ body[data-page="detail"] .portions--top .portion.is-active { background: var(--d
 .login__logo svg { width: 30px; height: 30px; }
 .login .login__sub { margin-top: -8px; }
 .circle-btn.login__logo svg { width: 34px; height: 34px; stroke-width: 2.6; }
+
+/* botões do topo (galeria/lista + busca) */
+.home-hero__actions { display: flex; gap: 10px; }
+
+/* galeria: 3 fotos por linha, só o nome */
+.gallery { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 10px; }
+.gallery__item { display: grid; gap: 7px; color: inherit; text-decoration: none; -webkit-tap-highlight-color: transparent; }
+.gallery__item:active .gallery__img { transform: scale(.97); }
+.thumb.gallery__img { width: 100%; height: auto; aspect-ratio: 1; border-radius: 16px; font-size: 34px; transition: transform .12s; }
+.gallery__name {
+  font-size: 14px; font-weight: 500; line-height: 1.25; text-align: center; padding: 0 2px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.thumb.gallery__img { position: relative; }
+.gallery__img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
