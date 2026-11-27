@@ -358,7 +358,7 @@ function renderDetail(id) {
         </div>
         <ul class="items">
           ${r.ingredients.map((t, i) => isSection(t) ? `<li class="items__section">${esc(sectionName(t))}</li>` : `
-            <li><button class="item tone-${(tone + i) % 6} ${checks.ing.has(i) ? 'is-done' : ''}" data-ing="${i}" aria-pressed="${checks.ing.has(i)}">
+            <li class="${r.ingredients.slice(0, i).some(isSection) ? 'in-section' : ''}"><button class="item tone-${(tone + i) % 6} ${checks.ing.has(i) ? 'is-done' : ''}" data-ing="${i}" aria-pressed="${checks.ing.has(i)}">
               <span class="item__mark">${checks.ing.has(i) ? ICON.check : DOT}</span><span class="item__text">${scaleText(t, k)}</span>
             </button></li>`).join('')}
         </ul>` : ''}

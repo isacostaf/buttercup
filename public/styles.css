@@ -818,3 +818,6 @@ body[data-page="detail"] .bottom-bar { background: linear-gradient(to top, #fff 
 .notes, .source { background: #F6F6F8; }
 .diary { background: #F6F6F8; }
 .diary__icon { background: #fff; }
+
+/* ingredientes dentro de uma seção (Massa, Recheio…) ficam com recuo */
+.items > li.in-section { padding-left: 18px; }
