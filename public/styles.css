@@ -936,3 +936,7 @@ body[data-page="detail"] .portions--top .portion.is-active { background: var(--d
 .home-hero__title { line-height: 1; }
 .home-hero__sub { margin-top: 2px; }
 
+
+/* foto da lista mais perto das bordas do card */
+.card { padding: 8px 18px 8px 8px; }
+.thumb { width: 92px; height: 92px; border-radius: 17px; }
