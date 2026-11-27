@@ -40,28 +40,32 @@ function png(size, rgb) {
 const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
 const mix = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
 
-const BG_TOP = hex('#FCE6EB'), BG_BOT = hex('#F6C9D3');
-const PETAL_IN = hex('#FFE48A'), PETAL_OUT = hex('#FFC23D');
-const CENTER = hex('#E8843A'), CENTER_HI = hex('#F6A65A');
+// Ícone: asterisco branco (igual ao do topo da tela inicial) sobre o degradê azul do app.
+const BG_TOP = hex('#9DAECB'), BG_MID = hex('#AEBDD7'), BG_BOT = hex('#C3CDE0');
+const WHITE = [255, 255, 255];
 
 const cx = 0.5, cy = 0.5;
-const petals = Array.from({ length: 5 }, (_, k) => {
-  const a = (-90 + k * 72) * Math.PI / 180;
-  return { x: cx + Math.cos(a) * 0.165, y: cy + Math.sin(a) * 0.165, r: 0.165 };
+const ARM = 0.27;       // tamanho de cada braço a partir do centro
+const STROKE = 0.062;   // espessura do traço (pontas arredondadas)
+const arms = [0, 45, 90, 135].map((deg) => {
+  const a = deg * Math.PI / 180;
+  return { dx: Math.cos(a), dy: Math.sin(a) };
 });
 
+// distância do ponto até o segmento que passa pelo centro na direção (dx, dy)
+function distToArm(u, v, { dx, dy }) {
+  const px = u - cx, py = v - cy;
+  const t = Math.max(-ARM, Math.min(ARM, px * dx + py * dy));
+  return Math.hypot(px - t * dx, py - t * dy);
+}
+
 function color(u, v) {
-  let c = mix(BG_TOP, BG_BOT, v);
-  // sombra suave da flor
-  const ds = Math.hypot(u - cx, v - (cy + 0.03));
-  if (ds < 0.36) c = mix(c, hex('#E9A7B5'), 0.35 * (1 - ds / 0.36));
-  for (const p of petals) {
-    const d = Math.hypot(u - p.x, v - p.y);
-    if (d < p.r) c = mix(PETAL_IN, PETAL_OUT, Math.min(1, d / p.r) ** 1.6);
-  }
+  let c = v < 0.5 ? mix(BG_TOP, BG_MID, v / 0.5) : mix(BG_MID, BG_BOT, (v - 0.5) / 0.5);
+  // brilho suave atrás do asterisco
   const dc = Math.hypot(u - cx, v - cy);
-  if (dc < 0.1) c = mix(CENTER_HI, CENTER, dc / 0.1);
-  if (Math.hypot(u - (cx - 0.03), v - (cy - 0.03)) < 0.025) c = mix(c, [255, 240, 210], 0.6);
+  if (dc < 0.42) c = mix(c, WHITE, 0.22 * (1 - dc / 0.42) ** 2);
+  const d = Math.min(...arms.map((a) => distToArm(u, v, a)));
+  if (d < STROKE / 2) return WHITE;
   return c;
 }
 
