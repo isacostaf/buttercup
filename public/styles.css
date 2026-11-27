@@ -1011,3 +1011,4 @@ body[data-page="detail"] .portions--top .portion.is-active { background: var(--d
     rgba(25, 25, 35, .12) 80%, rgba(25, 25, 35, .03) 93%, rgba(25, 25, 35, 0) 100%);
 }
 #list-area { position: relative; z-index: 1; }
+.home-hero__bg { filter: blur(7px) saturate(1.1); }
