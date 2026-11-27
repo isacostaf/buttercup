@@ -31,6 +31,8 @@ const ICON = {
   x: svg('<path d="M18 6L6 18M6 6l12 12"/>'),
   trash: svg('<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/>'),
   star: svg('<path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.8l-5.2 2.8 1-5.8-4.3-4.1 5.9-.8z" fill="currentColor"/>', 'stroke-width="1.5"'),
+  link: svg('<path d="M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1-1"/>'),
+  external: svg('<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5"/>'),
   book: svg('<path d="M5 4h11a3 3 0 013 3v13H8a3 3 0 01-3-3z"/><path d="M5 17a3 3 0 013-3h11M9 8h6"/>'),
   check: svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>'),
 };
@@ -55,6 +57,22 @@ const foodEmoji = (text) => FOOD[hash(text) % FOOD.length];
 const tagHTML = (label) => `<span class="tag tone-${hue(label)}">${esc(label)}</span>`;
 const byName = (a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' });
 const norm = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+// Fonte: transforma endereços de site em links clicáveis (abrem fora do app)
+const URL_RE = /\b((?:https?:\/\/|www\.)[^\s<>"']+|[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:com|com\.br|br|net|org|io|app|blog|co|info|me|tv)(?:\/[^\s<>"']*)?)/gi;
+function linkify(text) {
+  let out = '', last = 0;
+  for (const m of text.matchAll(URL_RE)) {
+    let raw = m[0].replace(/[.,;:!?)\]]+$/, '');
+    const href = /^https?:\/\//i.test(raw) ? raw : 'https://' + raw;
+    let shown = raw;
+    try { const u = new URL(href); shown = u.hostname.replace(/^www\./, '') + (u.pathname.length > 1 ? '/…' : ''); } catch { continue; }
+    out += esc(text.slice(last, m.index));
+    out += `<a class="source__link" href="${esc(href)}" target="_blank" rel="noopener noreferrer">${esc(shown)}${ICON.external}</a>`;
+    last = m.index + raw.length;
+  }
+  return out + esc(text.slice(last));
+}
+
 const plural = (n, one, many) => `<strong>${n}</strong>${n === 1 ? one : many}`;
 
 const madeCount = (r) => (r.diary || []).length;
@@ -330,6 +348,10 @@ function renderDetail(id) {
         <h2 class="section-title">Observações</h2>
         <p class="notes">${esc(r.notes)}</p>` : ''}
 
+      ${r.source?.trim() ? `
+        <h2 class="section-title">Fonte</h2>
+        <div class="source"><span class="source__icon">${ICON.link}</span><p class="source__text">${linkify(r.source)}</p></div>` : ''}
+
       <button class="link-btn" id="reset" hidden>Desmarcar tudo</button>
 
       ${diaryHTML(r)}
@@ -556,6 +578,12 @@ function renderForm(id) {
         <textarea class="input textarea" id="notes" rows="3" placeholder="Dicas, substituições, rendimento…">${esc(existing?.notes || '')}</textarea>
       </div>
 
+      <div class="field">
+        <label class="field__label" for="source">Fonte</label>
+        <input class="input" id="source" placeholder="Site, livro, quem te passou…" value="${esc(existing?.source || '')}" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done">
+        <p class="field__hint">Se for um site, cole o link — ele vira clicável.</p>
+      </div>
+
       ${existing ? `<button type="button" class="danger-btn" id="delete">${ICON.trash}Excluir receita</button>` : ''}
     </form>
 
@@ -675,6 +703,7 @@ function renderForm(id) {
       ingredients: readRows(ingRows),
       steps: readRows(stepRows),
       notes: $('#notes').value.trim(),
+      source: $('#source').value.trim(),
       photo: f.photo,
       thumb: f.thumb,
       favorite: existing?.favorite || false,

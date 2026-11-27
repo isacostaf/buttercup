@@ -1,6 +1,6 @@
 // Service worker: permite abrir o app sem internet.
 // Estratégia "rede primeiro": online sempre pega a versão nova; offline usa o cache.
-const CACHE = 'buttercup-v4';
+const CACHE = 'buttercup-v5';
 const SHELL = [
   '/', '/index.html', '/styles.css', '/app.js', '/db.js', '/manifest.json',
   '/icon-180.png', '/icon-192.png', '/icon-512.png',
