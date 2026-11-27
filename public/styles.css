@@ -986,3 +986,10 @@ body[data-page="detail"] .portions--top .portion.is-active { background: var(--d
 .swatch.is-active { box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--ink); }
 .swatch:active { transform: scale(.92); }
 .swatches { gap: 8px; flex-wrap: nowrap; } .swatch { width: 38px; height: 38px; flex: none; }
+
+/* título "Buttercup" do login na mesma fonte do "Hi, Marta" */
+.login .page-title { font-family: 'League Spartan', 'Urbanist', sans-serif; font-weight: 700; letter-spacing: 0.2px; }
+.login__logo { color: var(--h1); }
+.login__logo svg { width: 30px; height: 30px; }
+.login .login__sub { margin-top: -8px; }
+.circle-btn.login__logo svg { width: 34px; height: 34px; stroke-width: 2.6; }

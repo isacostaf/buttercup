@@ -974,7 +974,7 @@ function addRow(box, kind, value = '', after = null, onChange = () => {}, focus 
 function renderLogin() {
   $app.innerHTML = `
     <div class="wrap login">
-      <span class="circle-btn circle-btn--logo" aria-hidden="true">🌼</span>
+      <span class="circle-btn circle-btn--logo login__logo" style="${headerVars(getHeaderColor())}" aria-hidden="true">${ICON.asterisk}</span>
       <h1 class="page-title">Buttercup</h1>
       <p class="login__sub">Entre para ver suas receitas</p>
       <form class="login__form" id="login" novalidate>
