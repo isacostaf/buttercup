@@ -119,6 +119,13 @@ export const auth = {
     const { data } = await sb.auth.getSession();
     return data.session?.access_token || '';
   },
+  // nome da saudação ("Hi, …"), guardado na conta (vale em todos os aparelhos)
+  async setName(name) {
+    if (!cloud) return;
+    const sb = await client();
+    const { error } = await sb.auth.updateUser({ data: { name } });
+    if (error) throw error;
+  },
   async signOut() {
     const sb = await client();
     await sb.auth.signOut();

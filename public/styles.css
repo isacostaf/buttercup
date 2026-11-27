@@ -1031,3 +1031,71 @@ body[data-page="detail"] .portions--top .portion.is-active { background: var(--d
   cursor: pointer; -webkit-tap-highlight-color: transparent;
 }
 .label-dot.is-active { border-color: var(--tone-ink); }
+
+/* rodapé: botões lado a lado */
+.home-footer__btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+
+/* "Hi, nome": nomes compridos ficam um pouco menores para caber */
+.home-hero__title.is-long { font-size: 42px; }
+.home-hero__title.is-xlong { font-size: 35px; }
+
+/* boas-vindas: como você quer ser chamado? */
+.welcome {
+  min-height: 100dvh;
+  background:
+    radial-gradient(120% 70% at 15% 0%, var(--h4) 0%, transparent 60%),
+    radial-gradient(90% 60% at 100% 25%, var(--h5) 0%, transparent 65%),
+    linear-gradient(180deg, var(--h1) 0%, var(--h2) 40%, var(--h3) 75%, var(--bg) 100%);
+  color: #fff;
+}
+.welcome__inner {
+  position: relative;
+  min-height: 100dvh;
+  display: flex; flex-direction: column; justify-content: center;
+  padding-top: calc(var(--safe-top) + 24px); padding-bottom: calc(var(--safe-bottom) + 32px);
+}
+.welcome__back { position: absolute; top: calc(var(--safe-top) + 18px); left: var(--gutter); }
+.welcome__mark { display: grid; color: #fff; filter: drop-shadow(0 0 14px rgba(255, 255, 255, .6)); animation: welcome-spin 14s linear infinite; width: max-content; }
+.welcome__mark svg { width: 70px; height: 70px; }
+@keyframes welcome-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .welcome__mark { animation: none; } }
+.welcome__eyebrow { margin-top: 30px; font-size: 16px; font-weight: 600; letter-spacing: .02em; opacity: .9; text-shadow: 0 1px 10px rgba(60, 75, 110, .25); }
+.welcome__title {
+  margin-top: 6px;
+  font-family: 'League Spartan', 'Urbanist', sans-serif; font-weight: 700;
+  font-size: 44px; line-height: 1; letter-spacing: 0.2px;
+  text-shadow: 0 0 24px rgba(255, 255, 255, .7), 0 1px 8px rgba(60, 75, 110, .18);
+  max-width: 12ch;
+}
+.welcome__form { margin-top: 30px; display: grid; gap: 14px; max-width: 460px; }
+.welcome__field {
+  display: flex; align-items: center; gap: 10px;
+  min-height: 62px; padding: 0 18px 0 22px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .28);
+  border: 1px solid rgba(255, 255, 255, .7);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), 0 10px 30px rgba(60, 75, 110, .12);
+}
+.welcome__field:focus-within { background: rgba(255, 255, 255, .4); }
+.welcome__input {
+  flex: 1; min-width: 0;
+  background: none; border: 0; outline: none;
+  font: inherit; font-size: 22px; font-weight: 600; color: #fff;
+}
+.welcome__input::placeholder { color: rgba(255, 255, 255, .8); font-weight: 500; }
+.welcome__count { font-size: 13px; font-weight: 600; opacity: .85; font-variant-numeric: tabular-nums; }
+.welcome__preview { font-size: 15px; opacity: .95; padding-left: 4px; text-shadow: 0 1px 8px rgba(60, 75, 110, .2); }
+.welcome__preview strong { font-family: 'League Spartan', 'Urbanist', sans-serif; font-weight: 700; font-size: 17px; }
+.welcome__btn {
+  min-height: 58px; border-radius: 999px; border: 0;
+  background: #F3F6A8; color: #2D3550;
+  font: inherit; font-size: 18px; font-weight: 700;
+  box-shadow: 0 8px 22px rgba(200, 210, 90, .4);
+  cursor: pointer; transition: transform .1s, opacity .2s;
+}
+.welcome__btn:active { transform: scale(.98); }
+.welcome__btn:disabled { opacity: .55; box-shadow: none; }
+body[data-page="welcome"] { padding-bottom: 0; }
+.welcome__form { grid-template-columns: minmax(0, 1fr); width: 100%; }
+.welcome__input { width: 100%; }

@@ -41,7 +41,13 @@ const ICON = {
 };
 
 const DOT = '<i class="dot"></i>';
-const OWNER_NAME = 'Marta'; // nome da saudação na tela inicial
+// Nome da saudação ("Hi, …"): perguntado na primeira vez que o app abre.
+const NAME_KEY = 'buttercup-name';
+const NAME_MAX = 12; // limite para não quebrar o título
+const localName = () => { try { return localStorage.getItem(NAME_KEY) || ''; } catch { return ''; } };
+const cleanName = (v) => String(v || '').replace(/\s+/g, ' ').trim().slice(0, NAME_MAX);
+// nomes mais compridos ganham um título um pouco menor
+const nameSize = (n) => (n.length > 9 ? 'is-xlong' : n.length > 6 ? 'is-long' : '');
 
 // Cor do topo da tela inicial (escolhida no rodapé, guardada só neste aparelho).
 // Cada cor: 3 tons do degradê de cima para baixo + 2 tons de brilho.
@@ -267,7 +273,7 @@ function renderHome() {
             <button class="glass-btn" id="search-toggle" aria-label="Buscar receita">${ICON.search}</button>
           </div>` : ''}
         </div>
-        <h1 class="home-hero__title">Hi, ${esc(OWNER_NAME)}</h1>
+        <h1 class="home-hero__title ${nameSize(state.name)}">Hi, ${esc(state.name)}</h1>
         <p class="home-hero__sub">Welcome to your cookbook</p>
         ${state.recipes.length ? `
           <label class="search search--glass" id="search-box" ${state.query ? '' : 'hidden'}>
@@ -286,7 +292,10 @@ function renderHome() {
     <div class="wrap" id="list-area"></div>
 
     <footer class="home-footer">
-      <button class="bg-btn" id="color-toggle" aria-expanded="false"><span class="bg-btn__dot" style="${headerVars(getHeaderColor())}"></span>Trocar cor</button>
+      <div class="home-footer__btns">
+        <button class="bg-btn" id="color-toggle" aria-expanded="false"><span class="bg-btn__dot" style="${headerVars(getHeaderColor())}"></span>Trocar cor</button>
+        <button class="bg-btn" id="name-change">${ICON.edit}Trocar nome</button>
+      </div>
       <div class="swatches" id="swatches" hidden>
         ${Object.entries(HEADER_COLORS).map(([k, v]) => `
           <button class="swatch ${k === getHeaderColor() ? 'is-active' : ''}" data-color="${k}" style="${headerVars(k)}" aria-label="${v.name}" title="${v.name}"></button>`).join('')}
@@ -311,6 +320,8 @@ function renderHome() {
     colorToggle.querySelector('.bg-btn__dot').setAttribute('style', headerVars(k));
     swatches.querySelectorAll('.swatch').forEach((x) => x.classList.toggle('is-active', x === b));
   });
+
+  $app.querySelector('#name-change').onclick = () => renderWelcome(() => renderHome(), true);
 
   const logout = $app.querySelector('#logout');
   if (logout) logout.onclick = async () => {
@@ -1032,6 +1043,55 @@ function addRow(box, kind, value = '', after = null, onChange = () => {}, focus 
 }
 
 /* ---------- início ---------- */
+/* ================================================================
+   BOAS-VINDAS: como você quer ser chamado?
+   ================================================================ */
+function renderWelcome(done, editing = false) {
+  document.body.dataset.page = 'welcome';
+  $app.innerHTML = `
+    <div class="welcome" style="${headerVars(getHeaderColor())}">
+      <div class="wrap welcome__inner">
+        ${editing ? `<button class="glass-btn welcome__back" id="welcome-back" aria-label="Voltar">${ICON.back}</button>` : ''}
+        <span class="welcome__mark" aria-hidden="true">${ICON.asterisk}</span>
+        <p class="welcome__eyebrow">${editing ? 'Trocar nome' : 'Welcome to Buttercup'}</p>
+        <h1 class="welcome__title">Como você quer ser chamado?</h1>
+        <form class="welcome__form" id="welcome-form" novalidate autocomplete="off">
+          <label class="welcome__field">
+            <input class="welcome__input" id="welcome-name" maxlength="${NAME_MAX}" placeholder="Seu nome" value="${esc(state.name || '')}"
+              autocapitalize="words" autocorrect="off" spellcheck="false" enterkeyhint="done" aria-describedby="welcome-count">
+            <span class="welcome__count" id="welcome-count">0/${NAME_MAX}</span>
+          </label>
+          <p class="welcome__preview" aria-live="polite">Vai aparecer assim: <strong id="welcome-preview">Hi!</strong></p>
+          <button class="welcome__btn" type="submit" id="welcome-go" disabled>${editing ? 'Salvar' : 'Começar'}</button>
+        </form>
+      </div>
+    </div>`;
+  window.scrollTo(0, 0);
+  const input = $app.querySelector('#welcome-name');
+  const go = $app.querySelector('#welcome-go');
+  const sync = () => {
+    const n = cleanName(input.value);
+    $app.querySelector('#welcome-count').textContent = `${input.value.length}/${NAME_MAX}`;
+    $app.querySelector('#welcome-preview').textContent = n ? `Hi, ${n}` : 'Hi!';
+    go.disabled = !n;
+  };
+  input.addEventListener('input', sync);
+  sync();
+  if (!editing) setTimeout(() => input.focus(), 300);
+  const back = $app.querySelector('#welcome-back');
+  if (back) back.onclick = done;
+  $app.querySelector('#welcome-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const n = cleanName(input.value);
+    if (!n) return;
+    go.disabled = true;
+    state.name = n;
+    try { localStorage.setItem(NAME_KEY, n); } catch { /* ok */ }
+    try { await auth.setName(n); } catch (err) { console.error(err); } // sem internet: fica salvo no aparelho
+    done();
+  };
+}
+
 function renderLogin() {
   $app.innerHTML = `
     <div class="wrap login">
@@ -1071,7 +1131,11 @@ async function start() {
     try { session = await auth.session(); } catch (err) { console.error(err); }
     if (!session) return renderLogin();
     state.user = session.user?.email || '';
+    state.name = cleanName(session.user?.user_metadata?.name);
   }
+  state.name ||= cleanName(localName());
+  // primeira vez: pergunta o nome antes de mostrar as receitas
+  if (!state.name) { await new Promise((resolve) => renderWelcome(resolve)); if (location.hash !== '#/') history.replaceState(null, '', '#/'); }
 
   // 1) mostra na hora o que já está no aparelho
   try { state.recipes = await db.cached(); } catch (err) { console.error(err); }
