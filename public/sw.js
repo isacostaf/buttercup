@@ -1,8 +1,8 @@
 // Service worker: permite abrir o app sem internet.
 // Estratégia "rede primeiro": online sempre pega a versão nova; offline usa o cache.
-const CACHE = 'buttercup-v5';
+const CACHE = 'buttercup-v6';
 const SHELL = [
-  '/', '/index.html', '/styles.css', '/app.js', '/db.js', '/manifest.json',
+  '/', '/index.html', '/styles.css', '/app.js', '/db.js', '/config.js', '/manifest.json',
   '/icon-180.png', '/icon-192.png', '/icon-512.png',
 ];
 
@@ -22,7 +22,8 @@ self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
-  const isFont = url.hostname.endsWith('fonts.googleapis.com') || url.hostname.endsWith('fonts.gstatic.com');
+  const isFont = url.hostname.endsWith('fonts.googleapis.com') || url.hostname.endsWith('fonts.gstatic.com')
+    || url.hostname === 'cdn.jsdelivr.net'; // fontes e a biblioteca do Supabase (versão fixa)
   if (url.origin !== location.origin && !isFont) return;
 
   // fontes: cache primeiro (não mudam)

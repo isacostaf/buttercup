@@ -559,6 +559,16 @@ textarea.row__input { resize: none; overflow: hidden; line-height: 1.45; display
 }
 .danger-btn svg { width: 20px; height: 20px; }
 
+/* login e conta */
+.login { min-height: 100dvh; display: grid; align-content: center; justify-items: center; gap: 10px; padding-top: var(--safe-top); text-align: center; }
+.login .page-title { margin-top: 10px; }
+.login__sub { color: var(--ink-soft); margin-bottom: 18px; }
+.login__form { width: 100%; max-width: 380px; display: grid; gap: 12px; }
+.login__form .btn-dark { max-width: none; margin-top: 6px; }
+.account { text-align: center; color: var(--ink-faint); font-size: 14px; margin: 28px auto 0; padding: 0 var(--gutter); }
+.account__out { color: var(--ink-soft); font-weight: 600; text-decoration: underline; min-height: 44px; padding: 0 4px; }
+.hero img.is-loading { filter: blur(12px); transform: scale(1.05); }
+
 /* aviso rápido */
 .toast {
   position: fixed; left: 50%;

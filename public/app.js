@@ -1,4 +1,4 @@
-import { db, requestPersistence } from './db.js';
+import { db, auth, cloud, requestPersistence } from './db.js';
 
 const $app = document.getElementById('app');
 const $toast = document.getElementById('toast');
@@ -44,7 +44,9 @@ const FOOD = ['🍲', '🥗', '🍰', '🍝', '🥘', '🍳', '🥞', '🍪'];
 const esc = (s = '') =>
   String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+const uid = () => (crypto.randomUUID
+  ? crypto.randomUUID()
+  : '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, (c) => (c ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))).toString(16)));
 
 function hash(text) {
   let h = 2166136261; // FNV-1a
@@ -225,10 +227,18 @@ function renderHome() {
 
     <div class="wrap" id="list-area"></div>
 
+    ${cloud && state.user ? `<p class="account">Conectada como ${esc(state.user)} · <button class="account__out" id="logout">Sair</button></p>` : ''}
+
     <button class="fab" id="fab" aria-label="Adicionar receita">${ICON.plus}</button>
   `;
 
   drawList();
+  const logout = $app.querySelector('#logout');
+  if (logout) logout.onclick = async () => {
+    if (!confirm('Sair da sua conta neste aparelho?')) return;
+    await auth.signOut();
+    location.reload();
+  };
 
   $app.querySelector('#fab').onclick = () => go('/nova');
   $app.querySelectorAll('[data-filter]').forEach((btn) => {
@@ -302,7 +312,9 @@ function renderDetail(id) {
 
   $app.innerHTML = `
     <div class="hero tone-${tone}">
-      ${r.photo ? `<img src="${r.photo}" alt="Foto de ${esc(r.name)}">` : foodEmoji(r.name)}
+      ${r.photo || r.hasPhoto
+        ? `<img id="hero-img" src="${r.photo || r.thumb || ''}" alt="Foto de ${esc(r.name)}" class="${r.photo ? '' : 'is-loading'}">`
+        : foodEmoji(r.name)}
       <div class="hero__bar">
         <button class="circle-btn" id="back" aria-label="Voltar">${ICON.back}</button>
         <button class="circle-btn ${r.favorite ? 'is-fav' : ''}" id="fav" aria-label="Favoritar" aria-pressed="${!!r.favorite}">${ICON.heart}</button>
@@ -380,6 +392,15 @@ function renderDetail(id) {
   });
 
   bindDiary(r);
+
+  if (!r.photo && r.hasPhoto) {
+    db.photo(r.id).then((p) => {
+      if (!p) return;
+      r.photo = p;
+      const img = $('#hero-img');
+      if (img) { img.src = p; img.classList.remove('is-loading'); }
+    }).catch(() => {});
+  }
 
   $('#back').onclick = () => go('/');
   $('#edit').onclick = () => go(`/editar/${id}`);
@@ -530,6 +551,8 @@ function renderForm(id) {
     labels: existing ? [...existing.labels] : [],
     photo: existing?.photo || null,
     thumb: existing?.thumb || null,
+    hasPhoto: !!(existing?.photo || existing?.hasPhoto),
+    changed: false, // a foto foi trocada/removida?
   };
   let dirty = false;
 
@@ -599,23 +622,26 @@ function renderForm(id) {
   /* --- foto --- */
   const preview = $('#photo-preview');
   const drawPhoto = () => {
-    preview.innerHTML = f.photo
-      ? `<img src="${f.photo}" alt="Foto da receita">
+    preview.innerHTML = f.hasPhoto
+      ? `<img src="${f.photo || f.thumb}" alt="Foto da receita">
          <div class="photo-picker__actions">
            <span class="pill">${ICON.camera}Trocar</span>
            <button type="button" class="pill" id="photo-remove">${ICON.x}Remover</button>
          </div>`
       : `<div class="photo-picker__empty">${ICON.camera}<strong>Adicionar foto</strong><span>Câmera ou galeria</span></div>`;
     const rm = $('#photo-remove');
-    if (rm) rm.onclick = (e) => { e.preventDefault(); e.stopPropagation(); f.photo = f.thumb = null; dirty = true; drawPhoto(); };
+    if (rm) rm.onclick = (e) => { e.preventDefault(); e.stopPropagation(); f.photo = f.thumb = null; f.hasPhoto = false; f.changed = true; dirty = true; drawPhoto(); };
   };
   drawPhoto();
+  if (existing && f.hasPhoto && !f.photo) {
+    db.photo(existing.id).then((p) => { if (p && !f.changed) { f.photo = p; drawPhoto(); } }).catch(() => {});
+  }
   $('#photo-input').onchange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     preview.classList.add('is-loading');
     try {
-      Object.assign(f, await processPhoto(file));
+      Object.assign(f, await processPhoto(file), { hasPhoto: true, changed: true });
       dirty = true;
       drawPhoto();
     } catch {
@@ -704,8 +730,9 @@ function renderForm(id) {
       steps: readRows(stepRows),
       notes: $('#notes').value.trim(),
       source: $('#source').value.trim(),
-      photo: f.photo,
+      photo: f.photo || undefined,
       thumb: f.thumb,
+      hasPhoto: f.hasPhoto,
       favorite: existing?.favorite || false,
       diary: existing?.diary || [],
       createdAt: existing?.createdAt || now,
@@ -714,7 +741,7 @@ function renderForm(id) {
     const btn = $('#save');
     btn.disabled = true;
     try {
-      await db.put(recipe);
+      await db.put(recipe, { withPhoto: f.changed || !existing });
       state.recipes = state.recipes.filter((r) => r.id !== recipe.id).concat(recipe);
       state.checks.delete(recipe.id);
       toast(existing ? 'Receita atualizada ✓' : 'Receita salva ✓');
@@ -729,7 +756,7 @@ function renderForm(id) {
   const del = $('#delete');
   if (del) del.onclick = async () => {
     if (!confirm(`Excluir "${existing.name}"? Isso não pode ser desfeito.`)) return;
-    await db.remove(existing.id);
+    try { await db.remove(existing.id); } catch (err) { console.error(err); toast('Não consegui excluir. Está sem internet?'); return; }
     state.recipes = state.recipes.filter((r) => r.id !== existing.id);
     toast('Receita excluída');
     go('/', true);
@@ -792,16 +819,63 @@ function addRow(box, kind, value = '', after = null, onChange = () => {}, focus 
 }
 
 /* ---------- início ---------- */
+function renderLogin() {
+  $app.innerHTML = `
+    <div class="wrap login">
+      <span class="circle-btn circle-btn--logo" aria-hidden="true">🌼</span>
+      <h1 class="page-title">Buttercup</h1>
+      <p class="login__sub">Entre para ver suas receitas</p>
+      <form class="login__form" id="login" novalidate>
+        <input class="input" id="email" type="email" placeholder="E-mail" autocomplete="username" autocapitalize="off" inputmode="email" required>
+        <input class="input" id="password" type="password" placeholder="Senha" autocomplete="current-password" required>
+        <p class="field__error" id="login-error"></p>
+        <button class="btn-dark" type="submit" id="login-btn">Entrar</button>
+      </form>
+    </div>`;
+  const form = $app.querySelector('#login');
+  const err = $app.querySelector('#login-error');
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    const btn = $app.querySelector('#login-btn');
+    btn.disabled = true;
+    err.style.display = 'none';
+    try {
+      await auth.signIn($app.querySelector('#email').value.trim(), $app.querySelector('#password').value);
+      location.reload();
+    } catch (ex) {
+      err.textContent = /invalid/i.test(ex.message) ? 'E-mail ou senha incorretos.' : 'Não consegui entrar. Verifique a internet.';
+      err.style.display = 'block';
+      btn.disabled = false;
+    }
+  };
+}
+
 async function start() {
   requestPersistence();
-  try {
-    state.recipes = (await db.all()) || [];
-  } catch (err) {
-    console.error(err);
-    toast('Não consegui abrir suas receitas 😕');
+
+  if (cloud) {
+    let session = null;
+    try { session = await auth.session(); } catch (err) { console.error(err); }
+    if (!session) return renderLogin();
+    state.user = session.user?.email || '';
   }
+
+  // 1) mostra na hora o que já está no aparelho
+  try { state.recipes = await db.cached(); } catch (err) { console.error(err); }
   window.addEventListener('hashchange', route);
   route();
+
+  // 2) atualiza com a nuvem (sem atrapalhar quem está no formulário)
+  if (cloud) {
+    try {
+      state.recipes = await db.sync();
+      const onForm = /^#\/(nova|editar)/.test(location.hash);
+      if (!onForm) { const y = window.scrollY; route(); window.scrollTo(0, y); }
+    } catch (err) {
+      console.error(err);
+      toast('Sem conexão — mostrando o que está salvo no aparelho');
+    }
+  }
 }
 
 if ('serviceWorker' in navigator) {
