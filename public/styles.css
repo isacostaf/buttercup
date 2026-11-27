@@ -754,3 +754,67 @@ textarea.row__input { resize: none; overflow: hidden; line-height: 1.45; display
 
 .bottom-bar { padding-top: 14px; padding-bottom: calc(10px + var(--safe-bottom)); }
 .btn-dark { min-height: 50px; font-size: 16px; }
+
+/* ================================================================
+   RECEITA ABERTA — estilo "livro de receitas" (texto limpo, sem checklist)
+   Tocar num ingrediente ou passo risca; tocar de novo desfaz.
+   ================================================================ */
+body[data-page="detail"] { background: #fff; }
+body[data-page="detail"] .bottom-bar { background: linear-gradient(to top, #fff 55%, rgba(255, 255, 255, 0)); }
+
+.detail .stat { border-color: #EDEDF0; }
+.detail .portions { background: #F6F6F8; }
+.detail .portion { background: #fff; border-color: #E4E4E8; }
+.detail .portion.is-active { background: var(--dark); border-color: var(--dark); }
+
+#ing-count, #step-count { display: none; }
+
+.section-title { font-size: 15px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-faint); margin: 22px 0 4px; }
+
+.items { background: none; border-radius: 0; overflow: visible; }
+.items > li + li { border-top: 0; }
+.items .item {
+  min-height: 0;
+  padding: 7px 0;
+  gap: 8px;
+  font-size: 16px;
+  color: #5C5C62;
+  background: none;
+  transition: opacity .15s;
+}
+.items .item__text { line-height: 1.45; padding-top: 0; }
+.qty { font-weight: 700; color: var(--ink); background: none; padding: 0; border-radius: 0; }
+.qty--scaled { text-decoration: underline; text-decoration-color: #D9D9DE; text-underline-offset: 3px; }
+.aside { font-style: italic; color: #A3A3A9; }
+
+/* sem marcadores nos ingredientes */
+.items .item:not(.item--step) .item__mark { display: none; }
+
+/* passos: número cinza claro, sem bolinha */
+.item--step { padding: 9px 0; gap: 10px; }
+.items .item--step .item__mark {
+  width: auto; min-width: 14px; height: auto;
+  border: 0; border-radius: 0; background: none;
+  color: #B9B9BF; font-size: 16px; font-weight: 500;
+  display: block; line-height: 1.45;
+}
+.items .item--step.is-done .item__mark { background: none; color: #D4D4D8; }
+.items .item--step .item__text { line-height: 1.55; }
+
+/* riscado ao tocar */
+.items .item.is-done { opacity: .45; }
+.items .item.is-done .item__text { color: inherit; text-decoration: line-through; text-decoration-thickness: 1.5px; }
+
+/* seções: linha fina + nome pequeno */
+.items__section {
+  background: none;
+  padding: 14px 0 4px;
+  margin-top: 6px;
+  border-top: 1px solid #EDEDF0;
+  font-size: 12px; color: var(--ink-faint);
+}
+.items__section:first-child { border-top: 0; margin-top: 0; padding-top: 4px; }
+
+.notes, .source { background: #F6F6F8; }
+.diary { background: #F6F6F8; }
+.diary__icon { background: #fff; }

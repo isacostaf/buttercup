@@ -177,16 +177,21 @@ function formatQty(v) {
 }
 
 // devolve HTML do ingrediente com as quantidades multiplicadas (destacadas)
+// quantidades sempre em negrito (com a unidade colada: "85g", "100 ml");
+// texto entre parênteses fica mais discreto
+const UNIT = /^\s?(?:kg|g|mg|ml|l|cl|oz|lb)\b/i;
 function scaleText(text, k) {
-  if (k === 1) return esc(text);
   let out = '', last = 0;
   for (const m of text.matchAll(QTY)) {
     const v = parseQty(m[0]);
+    if (!Number.isFinite(v)) continue;
+    const unit = text.slice(m.index + m[0].length).match(UNIT)?.[0] || '';
     out += esc(text.slice(last, m.index));
-    out += Number.isFinite(v) ? `<b class="qty">${formatQty(v * k)}</b>` : esc(m[0]);
-    last = m.index + m[0].length;
+    out += `<b class="qty${k !== 1 ? ' qty--scaled' : ''}">${k === 1 ? esc(m[0]) : formatQty(v * k)}${esc(unit)}</b>`;
+    last = m.index + m[0].length + unit.length;
   }
-  return out + esc(text.slice(last));
+  out += esc(text.slice(last));
+  return out.replace(/\(([^()]*)\)/g, '<span class="aside">($1)</span>');
 }
 
 /* ---------- roteamento (hash, sem recarregar = continua em tela cheia) ---------- */
@@ -196,6 +201,7 @@ function route() {
   else if (a === 'nova') renderForm(null);
   else if (a === 'editar' && b) renderForm(b);
   else renderHome();
+  document.body.dataset.page = a === 'r' ? 'detail' : a || 'home';
   window.scrollTo(0, 0);
 }
 
@@ -362,7 +368,7 @@ function renderDetail(id) {
         <ol class="items">
           ${r.steps.map((t, i) => isSection(t) ? `<li class="items__section">${esc(sectionName(t))}</li>` : `
             <li><button class="item item--step ${checks.step.has(i) ? 'is-done' : ''}" data-step="${i}" aria-pressed="${checks.step.has(i)}">
-              <span class="item__mark">${checks.step.has(i) ? ICON.check : stepNum[i]}</span><span class="item__text">${esc(t)}</span>
+              <span class="item__mark">${stepNum[i]}</span><span class="item__text">${esc(t)}</span>
             </button></li>`).join('')}
         </ol>` : ''}
 
@@ -424,7 +430,7 @@ function renderDetail(id) {
     catch { toast('Não consegui salvar 😕'); }
   };
 
-  const bindToggle = (attr, set, label) => {
+  const bindToggle = (attr, set, label, keepLabel = false) => {
     $app.querySelectorAll(`[data-${attr}]`).forEach((btn) => {
       btn.onclick = () => {
         const i = +btn.dataset[attr];
@@ -432,13 +438,13 @@ function renderDetail(id) {
         const done = set.has(i);
         btn.classList.toggle('is-done', done);
         btn.setAttribute('aria-pressed', done);
-        btn.querySelector('.item__mark').innerHTML = done ? ICON.check : label(i);
+        btn.querySelector('.item__mark').innerHTML = done && !keepLabel ? ICON.check : label(i);
         updateCounts();
       };
     });
   };
   bindToggle('ing', checks.ing, () => DOT);
-  bindToggle('step', checks.step, (i) => stepNum[i]);
+  bindToggle('step', checks.step, (i) => stepNum[i], true);
 }
 
 /* ---------- Diary: relatos de cada vez que a receita foi feita ---------- */
