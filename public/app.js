@@ -86,7 +86,17 @@ function hash(text) {
 const hue = (text) => hash(text) % 6; // 6 cores pastel no CSS (.tone-0 … .tone-5)
 const foodEmoji = (text) => FOOD[hash(text) % FOOD.length];
 
-const tagHTML = (label) => `<span class="tag tone-${hue(label)}">${esc(label)}</span>`;
+// Cor de cada label: escolhida pela usuária (guardada neste aparelho) ou automática pelo nome.
+const LABEL_COLORS_KEY = 'buttercup-label-colors';
+const TONES = ['Verde', 'Pêssego', 'Menta', 'Rosa', 'Azul', 'Lavanda', 'Amarelo', 'Cinza'];
+const labelColors = () => { try { return JSON.parse(localStorage.getItem(LABEL_COLORS_KEY)) || {}; } catch { return {}; } };
+const setLabelColor = (label, tone) => {
+  const m = labelColors();
+  m[label.toLowerCase()] = tone;
+  try { localStorage.setItem(LABEL_COLORS_KEY, JSON.stringify(m)); } catch { /* ok */ }
+};
+const labelTone = (label) => labelColors()[label.toLowerCase()] ?? hue(label);
+const tagHTML = (label) => `<span class="tag tone-${labelTone(label)}">${esc(label)}</span>`;
 const byName = (a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' });
 const norm = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 // Fonte: transforma endereços de site em links clicáveis (abrem fora do app)
@@ -693,6 +703,8 @@ function renderForm(id) {
           <div class="tags tags--edit" id="label-chips"></div>
           <input class="input" id="label-input" placeholder="Digite e toque em OK (ex.: doce)" enterkeyhint="done" autocapitalize="none">
         </div>
+        <div class="label-palette" id="label-palette" hidden></div>
+        <p class="field__hint" id="label-hint">Toque no nome de uma label para trocar a cor.</p>
         <div class="suggest" id="label-suggest"></div>
       </div>
 
@@ -774,13 +786,32 @@ function renderForm(id) {
   const chips = $('#label-chips');
   const labelInput = $('#label-input');
   const suggest = $('#label-suggest');
+  const palette = $('#label-palette');
+  let painting = null; // label com a paleta de cores aberta
   const drawLabels = () => {
-    chips.innerHTML = f.labels.map((l, i) =>
-      `<button type="button" class="tag tone-${hue(l)} tag--removable" data-rm="${i}" aria-label="Remover ${esc(l)}">${esc(l)}${ICON.x}</button>`).join('');
+    if (painting && !f.labels.includes(painting)) painting = null;
+    chips.innerHTML = f.labels.map((l, i) => `
+      <span class="tag tone-${labelTone(l)} tag--removable ${painting === l ? 'is-painting' : ''}">
+        <button type="button" class="tag__name" data-paint="${i}" aria-label="Mudar cor de ${esc(l)}">${esc(l)}</button>
+        <button type="button" class="tag__rm" data-rm="${i}" aria-label="Remover ${esc(l)}">${ICON.x}</button>
+      </span>`).join('');
+    palette.hidden = !painting;
+    $('#label-hint').hidden = !f.labels.length || !!painting;
+    palette.innerHTML = painting ? `
+      <span class="label-palette__hint">Cor de <strong>${esc(painting)}</strong></span>
+      <div class="label-palette__dots">
+        ${TONES.map((name, t) => `<button type="button" class="label-dot tone-${t} ${labelTone(painting) === t ? 'is-active' : ''}" data-tone="${t}" aria-label="${name}" title="${name}"></button>`).join('')}
+      </div>` : '';
+    palette.querySelectorAll('[data-tone]').forEach((b) => b.onclick = () => { setLabelColor(painting, +b.dataset.tone); drawLabels(); });
+    chips.querySelectorAll('[data-paint]').forEach((b) => b.onclick = () => {
+      const l = f.labels[+b.dataset.paint];
+      painting = painting === l ? null : l;
+      drawLabels();
+    });
     const chosen = new Set(f.labels.map((l) => l.toLowerCase()));
     const opts = allLabels().filter((l) => !chosen.has(l.toLowerCase()));
     suggest.innerHTML = opts.length
-      ? `<span class="suggest__hint">Já usadas:</span>${opts.map((l) => `<button type="button" class="tag tone-${hue(l)} tag--add" data-add="${esc(l)}">+ ${esc(l)}</button>`).join('')}`
+      ? `<span class="suggest__hint">Já usadas:</span>${opts.map((l) => `<button type="button" class="tag tone-${labelTone(l)} tag--add" data-add="${esc(l)}">+ ${esc(l)}</button>`).join('')}`
       : '';
     chips.querySelectorAll('[data-rm]').forEach((b) => b.onclick = () => { f.labels.splice(+b.dataset.rm, 1); dirty = true; drawLabels(); });
     suggest.querySelectorAll('[data-add]').forEach((b) => b.onclick = () => addLabel(b.dataset.add));
