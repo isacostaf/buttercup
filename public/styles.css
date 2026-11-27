@@ -693,3 +693,64 @@ textarea.row__input { resize: none; overflow: hidden; line-height: 1.45; display
 /* botão de editar mais baixo */
 .bottom-bar { padding-top: 18px; padding-bottom: calc(12px + var(--safe-bottom)); }
 .btn-dark { min-height: 54px; font-size: 17px; }
+
+/* ---------- ainda mais compacto e sem cores (clean) ---------- */
+.hero { height: min(28vh, 240px); font-size: 60px; }
+.hero .circle-btn { width: 44px; height: 44px; }
+.hero .circle-btn svg { width: 20px; height: 20px; }
+
+.detail { padding-top: 14px; }
+.detail__name { font-size: 23px; line-height: 1.2; }
+.tags--lg .tag { font-size: 13px; padding: 3px 10px; }
+
+.stats { margin-top: 10px; gap: 6px; }
+.stat { min-height: 44px; padding: 6px 10px; gap: 7px; border-width: 1px; }
+.stat svg { width: 17px; height: 17px; }
+.stat__value { font-size: 12px; }
+.stat__value strong { font-size: 16px; }
+
+.section-title { font-size: 17px; margin: 18px 0 6px; }
+.section-title small { font-size: 13px; }
+
+.portions { padding: 6px 8px; }
+.portions__label { font-size: 13px; }
+.portion { min-height: 36px; font-size: 15px; }
+
+.items { border-radius: 14px; }
+.item { min-height: 44px; padding: 8px 12px 8px 10px; gap: 10px; font-size: 16px; }
+.item__text { line-height: 1.3; }
+
+/* marcador neutro: bolinha vazia (ingrediente) / número cinza (passo) */
+.items .item__mark {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1.5px solid #CFCFD4;
+  color: var(--ink-soft);
+}
+.items .item__mark .dot { display: none; }
+.items .item.is-done .item__mark { background: var(--dark); border-color: var(--dark); color: #fff; }
+.items .item__mark svg { width: 12px; height: 12px; stroke-width: 3; }
+.item--step { padding-top: 10px; padding-bottom: 10px; }
+.item--step .item__mark { width: 22px; height: 22px; border: 0; background: #F1F1F3; font-size: 12px; font-weight: 700; }
+.item--step .item__text { padding-top: 1px; line-height: 1.4; }
+
+.items__section { font-size: 12px; padding: 10px 12px 5px; color: var(--ink-soft); }
+
+/* quantidade ajustada: só negrito, sem marca-texto */
+.qty { background: none; padding: 0; color: var(--ink); font-weight: 700; }
+
+.notes { padding: 10px 12px; font-size: 16px; border-radius: 14px; }
+.source { padding: 8px 12px 8px 8px; border-radius: 14px; }
+.source__icon { width: 30px; height: 30px; background: #F1F1F3; color: var(--ink-soft); }
+.source__text { font-size: 15px; padding-top: 4px; }
+.source__link { color: var(--ink); }
+
+.diary { margin-top: 18px; border-radius: 14px; }
+.diary__tab { min-height: 54px; padding: 8px 12px 8px 8px; }
+.diary__icon { width: 36px; height: 36px; background: #F1F1F3; color: var(--ink-soft); }
+.diary__title { font-size: 17px; }
+.diary__title small { font-size: 13px; }
+
+.bottom-bar { padding-top: 14px; padding-bottom: calc(10px + var(--safe-bottom)); }
+.btn-dark { min-height: 50px; font-size: 16px; }
