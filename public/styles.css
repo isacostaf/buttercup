@@ -943,3 +943,71 @@ body[data-page="detail"] .portions--top .portion.is-active { background: var(--d
 
 /* contador de vezes feita: texto discreto embaixo das labels */
 .card__made { font-size: 13px; font-style: italic; color: var(--ink-faint); line-height: 1.2; }
+
+/* ================================================================
+   Fundo do topo com foto (desfocada e escurecida para o texto aparecer)
+   ================================================================ */
+.home-hero { isolation: isolate; overflow: hidden; }
+.home-hero--photo { background: var(--bg); }
+.home-hero__bg {
+  position: absolute; inset: -40px; z-index: -2;
+  background-size: cover; background-position: center;
+  filter: blur(18px) saturate(1.15);
+  transform: translateZ(0);
+}
+.home-hero--photo::before {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(180deg,
+    rgba(25, 25, 35, .38) 0%,
+    rgba(25, 25, 35, .22) 55%,
+    rgba(244, 244, 246, .35) 85%,
+    var(--bg) 100%);
+}
+.home-hero--photo .filters--glass .chip:not(.is-active) { color: #fff; border-color: rgba(255, 255, 255, .7); }
+
+/* rodapé da tela inicial */
+.home-footer { display: grid; justify-items: center; gap: 6px; margin: 30px auto 0; padding: 0 var(--gutter); }
+.bg-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  min-height: 44px; padding: 0 18px;
+  border-radius: 999px;
+  border: 1px solid #DCDCE0;
+  font-weight: 600; font-size: 15px; color: var(--ink-soft);
+  cursor: pointer;
+}
+.bg-btn svg { width: 18px; height: 18px; }
+.bg-btn:active { background: var(--surface); }
+.bg-reset { min-height: 36px; font-size: 14px; color: var(--ink-faint); text-decoration: underline; }
+.home-footer .account { margin-top: 6px; }
+
+/* degradê mais suave: a foto some aos poucos (máscara) em vez de uma faixa marcada */
+.home-hero__bg {
+  inset: -40px -40px 0 -40px;
+  -webkit-mask-image: linear-gradient(to bottom,
+    #000 0%, #000 38%, rgba(0,0,0,.92) 50%, rgba(0,0,0,.78) 60%, rgba(0,0,0,.58) 70%,
+    rgba(0,0,0,.36) 80%, rgba(0,0,0,.17) 89%, rgba(0,0,0,.05) 96%, transparent 100%);
+          mask-image: linear-gradient(to bottom,
+    #000 0%, #000 38%, rgba(0,0,0,.92) 50%, rgba(0,0,0,.78) 60%, rgba(0,0,0,.58) 70%,
+    rgba(0,0,0,.36) 80%, rgba(0,0,0,.17) 89%, rgba(0,0,0,.05) 96%, transparent 100%);
+}
+.home-hero--photo::before {
+  background: linear-gradient(180deg,
+    rgba(25, 25, 35, .36) 0%, rgba(25, 25, 35, .30) 30%, rgba(25, 25, 35, .20) 55%,
+    rgba(25, 25, 35, .10) 75%, rgba(25, 25, 35, .03) 90%, rgba(25, 25, 35, 0) 100%);
+}
+/* espaço extra embaixo: o degradê acontece abaixo dos labels, que ficam legíveis */
+.home-hero--photo { padding-bottom: 46px; margin-bottom: -18px; }
+.home-hero--photo .home-hero__bg {
+  -webkit-mask-image: linear-gradient(to bottom,
+    #000 0%, #000 62%, rgba(0,0,0,.9) 70%, rgba(0,0,0,.7) 77%, rgba(0,0,0,.45) 84%,
+    rgba(0,0,0,.22) 91%, rgba(0,0,0,.07) 96%, transparent 100%);
+          mask-image: linear-gradient(to bottom,
+    #000 0%, #000 62%, rgba(0,0,0,.9) 70%, rgba(0,0,0,.7) 77%, rgba(0,0,0,.45) 84%,
+    rgba(0,0,0,.22) 91%, rgba(0,0,0,.07) 96%, transparent 100%);
+}
+.home-hero--photo::before {
+  background: linear-gradient(180deg,
+    rgba(25, 25, 35, .36) 0%, rgba(25, 25, 35, .30) 35%, rgba(25, 25, 35, .24) 62%,
+    rgba(25, 25, 35, .12) 80%, rgba(25, 25, 35, .03) 93%, rgba(25, 25, 35, 0) 100%);
+}
+#list-area { position: relative; z-index: 1; }

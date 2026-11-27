@@ -39,7 +39,15 @@ const ICON = {
 };
 
 const DOT = '<i class="dot"></i>';
-const OWNER_NAME = 'Marta'; // nome da saudação na tela inicial
+const OWNER_NAME = 'Marta';
+
+// Fundo do topo da tela inicial: foto escolhida pela pessoa (guardada só neste aparelho).
+// A foto é reduzida para ~240px antes de salvar (fica com poucos KB) e o desfoque é feito no CSS.
+const BG_KEY = 'buttercup-header-bg';
+const getHeaderBg = () => { try { return localStorage.getItem(BG_KEY); } catch { return null; } };
+const setHeaderBg = (v) => {
+  try { v ? localStorage.setItem(BG_KEY, v) : localStorage.removeItem(BG_KEY); return true; } catch { return false; }
+}; // nome da saudação na tela inicial
 
 const FOOD = ['🍲', '🥗', '🍰', '🍝', '🥘', '🍳', '🥞', '🍪'];
 
@@ -221,7 +229,8 @@ function renderHome() {
     `<button class="chip ${(state.filter || '') === value ? 'is-active' : ''}" data-filter="${esc(value)}">${extra}${esc(text)}</button>`;
 
   $app.innerHTML = `
-    <header class="home-hero">
+    <header class="home-hero ${getHeaderBg() ? 'home-hero--photo' : ''}">
+      ${getHeaderBg() ? `<div class="home-hero__bg" style="background-image:url('${getHeaderBg()}')"></div>` : ''}
       <div class="wrap">
         <div class="home-hero__top">
           <span class="home-hero__mark" aria-hidden="true">${ICON.asterisk}</span>
@@ -245,12 +254,36 @@ function renderHome() {
 
     <div class="wrap" id="list-area"></div>
 
-    ${cloud && state.user ? `<p class="account">Conectada como ${esc(state.user)} · <button class="account__out" id="logout">Sair</button></p>` : ''}
+    <footer class="home-footer">
+      <label class="bg-btn">
+        <input type="file" accept="image/*" class="sr-only" id="bg-input">
+        ${ICON.camera}Trocar fundo
+      </label>
+      ${getHeaderBg() ? `<button class="bg-reset" id="bg-reset">Voltar ao azul</button>` : ''}
+      ${cloud && state.user ? `<p class="account">Conectada como ${esc(state.user)} · <button class="account__out" id="logout">Sair</button></p>` : ''}
+    </footer>
 
     <button class="fab" id="fab" aria-label="Adicionar receita">${ICON.plus}</button>
   `;
 
   drawList();
+  $app.querySelector('#bg-input').onchange = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const img = await loadImage(file);
+      if (!setHeaderBg(resize(img, 240, 0.7))) return toast('Não consegui salvar o fundo 😕');
+      renderHome();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      toast('Fundo trocado ✓');
+    } catch {
+      toast('Não consegui abrir essa foto 😕');
+    }
+  };
+  const bgReset = $app.querySelector('#bg-reset');
+  if (bgReset) bgReset.onclick = () => { setHeaderBg(null); renderHome(); toast('Fundo azul de volta'); };
+
   const logout = $app.querySelector('#logout');
   if (logout) logout.onclick = async () => {
     if (!confirm('Sair da sua conta neste aparelho?')) return;
