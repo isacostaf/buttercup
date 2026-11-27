@@ -1013,3 +1013,10 @@ body[data-page="detail"] .portions--top .portion.is-active { background: var(--d
 #list-area { position: relative; z-index: 1; }
 .home-hero__bg { filter: blur(7px) saturate(1.1); }
 .home-hero__bg { filter: blur(2px) saturate(1.05); inset: -8px -8px 0 -8px; }
+
+/* labels na lista: no máximo 2 linhas no celular e 1 no computador (o resto é cortado) */
+.card .tags { overflow: hidden; max-height: calc(24px * 2 + 6px); }
+.card .tag { height: 24px; line-height: 18px; white-space: nowrap; }
+@media (min-width: 768px) {
+  .card .tags { max-height: 24px; }
+}
