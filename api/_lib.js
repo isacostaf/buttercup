@@ -213,7 +213,7 @@ function splitIngredients(line) {
   let cur = [], depth = 0;
   words.forEach((w, i) => {
     const prev = words[i - 1] || '';
-    if (cur.length && depth === 0 && QTY_START.test(w) && !NO_SPLIT_AFTER.test(prev) && !/[\/x×(]$/.test(prev)) {
+    if (cur.length && depth === 0 && QTY_START.test(w) && !NO_SPLIT_AFTER.test(prev) && !/[\/x×(+\-]$/.test(prev)) {
       out.push(cur.join(' ')); cur = [];
     }
     cur.push(w);
@@ -249,6 +249,9 @@ export function parseCaption(desc) {
   text = text.replace(/\s(?=\d{1,2}\s?[–\-.)]\s+[A-ZÀ-Ý])/g, '\n');
   // marcadores "- item - item" em linhas próprias
   if ((text.match(/(?<!\d)\s[-•]\s/g) || []).length >= 2) text = text.replace(/(?<!\d)\s[-•]\s/g, '\n');
+  // marcadores em emoji, mesmo grudados ("▪️130g de macarrão ▪️60g de bacon")
+  const EMOJI_BULLET = /[▪▫◾◽◼◻•●○🔸🔹🔶🔷✔✅☑➡👉🟡🟢⭐✨🔺🔻]️?/gu;
+  if ((text.match(EMOJI_BULLET) || []).length >= 3) text = text.replace(new RegExp(`\\s*(${EMOJI_BULLET.source})+\\s*`, 'gu'), '\n');
   // "Modo de preparo no vídeo" no meio do texto
   text = text.replace(/\s*((modo\s+de\s+)?preparo\s+(completo\s+)?(no|in the)\s+v[ií]deo[^\n.!]*[.!]?)\s*/gi, '\n$1\n');
   // títulos "Recheio:" em linhas próprias
@@ -277,7 +280,8 @@ export function parseCaption(desc) {
     }
     if (/no v[ií]deo|in the video/i.test(line)) { notes.push(line); if (mode !== 'intro') mode = 'notes'; continue; }
     if (mode === 'intro') {
-      if (intro.length && QTY_START.test(line) && splitIngredients(line).length > 1) mode = 'ing';
+      // sem "Ingredientes:": a lista começa na primeira linha com quantidade
+      if (intro.length && QTY_START.test(line) && (splitIngredients(line).length > 1 || !looksLikeStep(line))) mode = 'ing';
       else { intro.push(line); continue; }
     }
     if (mode === 'ing') {
@@ -288,6 +292,12 @@ export function parseCaption(desc) {
         line = line.slice(sec[0].length);
       }
       if (isAside(line)) { notes.push(line); continue; }
+      // último ingrediente grudado no 1º passo: "… batata palha a gosto Cozinhe o macarrão em …"
+      const glued = line.match(/^(.{3,90}?[a-zà-ÿ)])\s+([A-ZÀ-Ý][a-zà-ÿ]+\s.+)$/u);
+      if (glued && !/[.!]/.test(glued[1]) && /[.!]/.test(glued[2]) && glued[2].split(/\s+/).length > 7) {
+        ingredients.push(...splitIngredients(glued[1]));
+        line = glued[2];
+      }
       if (looksLikeStep(line)) mode = 'steps';
     }
     if (mode === 'ing') ingredients.push(...splitIngredients(line));
