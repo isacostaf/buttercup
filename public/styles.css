@@ -1012,3 +1012,4 @@ body[data-page="detail"] .portions--top .portion.is-active { background: var(--d
 }
 #list-area { position: relative; z-index: 1; }
 .home-hero__bg { filter: blur(7px) saturate(1.1); }
+.home-hero__bg { filter: blur(2px) saturate(1.05); inset: -8px -8px 0 -8px; }

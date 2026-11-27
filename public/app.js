@@ -42,7 +42,7 @@ const DOT = '<i class="dot"></i>';
 const OWNER_NAME = 'Marta';
 
 // Fundo do topo da tela inicial: foto escolhida pela pessoa (guardada só neste aparelho).
-// A foto é reduzida para ~480px antes de salvar (umas dezenas de KB) e o desfoque é feito no CSS.
+// A foto é reduzida para ~720px antes de salvar (umas dezenas de KB) e o desfoque é feito no CSS.
 const BG_KEY = 'buttercup-header-bg';
 const getHeaderBg = () => { try { return localStorage.getItem(BG_KEY); } catch { return null; } };
 const setHeaderBg = (v) => {
@@ -273,7 +273,7 @@ function renderHome() {
     if (!file) return;
     try {
       const img = await loadImage(file);
-      if (!setHeaderBg(resize(img, 480, 0.72))) return toast('Não consegui salvar o fundo 😕');
+      if (!setHeaderBg(resize(img, 720, 0.72))) return toast('Não consegui salvar o fundo 😕');
       renderHome();
       window.scrollTo({ top: 0, behavior: 'smooth' });
       toast('Fundo trocado ✓');
